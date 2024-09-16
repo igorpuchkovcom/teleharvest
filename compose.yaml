@@ -1,0 +1,32 @@
+services:
+  db:
+    container_name: db
+    image: mariadb:latest
+    volumes:
+      - mysql_data:/var/lib/mysql
+    environment:
+      MARIADB_DATABASE: th
+      MARIADB_USER: admin
+      MARIADB_PASSWORD: admin
+      MARIADB_ROOT_PASSWORD: root
+    ports:
+      - '3306:3306'
+    networks:
+      - network
+
+  main:
+    build:
+      context: .
+    container_name: main
+    command: python main.py
+    networks:
+      - network
+    depends_on:
+      - db
+
+networks:
+  network:
+    driver: bridge
+
+volumes:
+  mysql_data:
