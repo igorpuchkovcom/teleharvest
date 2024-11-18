@@ -1,5 +1,4 @@
 import logging
-import json
 from typing import List, Optional
 
 from telethon import TelegramClient
