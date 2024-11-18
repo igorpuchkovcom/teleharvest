@@ -1,9 +1,11 @@
-import pytest
-from unittest.mock import AsyncMock, MagicMock
 from datetime import datetime, timedelta
-from models.message import Message
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+
+from models.message import Message
 
 
 # Mocking database session and query results
