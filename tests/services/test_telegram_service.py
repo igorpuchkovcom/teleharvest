@@ -56,7 +56,7 @@ async def test_fetch_messages_without_last_message_id(telegram_service, mock_cli
 
     # Assert
     assert len(result) == 1
-    mock_client.get_messages.assert_called_once_with("test_channel", limit=1)
+    mock_client.get_messages.assert_called_once_with("test_channel", limit=10)
 
 
 @pytest.mark.asyncio
