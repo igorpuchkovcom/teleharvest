@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
+from sqlalchemy import literal, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -32,51 +33,73 @@ def message_instance():
 async def test_get_last_message_id(mock_session):
     """Test for the get_last_message_id method."""
     # Mock the query result
-    mock_session.execute.return_value.scalar_one_or_none.return_value = 123
+    mock_result = AsyncMock()
+    mock_result.scalar_one_or_none = Mock(return_value=123)
+    mock_session.execute = AsyncMock(return_value=mock_result)
 
     result = await Message.get_last_message_id(mock_session, "test_channel")
 
     assert result == 123
-    mock_session.execute.assert_called_once_with(
-        select(Message.id)
-        .where(Message.channel == "test_channel")
-        .order_by(Message.id.desc())
-        .limit(1)
+
+    statement = (
+        select(Message.id).
+        where(Message.channel == literal("test_channel")).
+        order_by(desc(Message.id)).
+        limit(1)
     )
+    assert str(statement) == str(mock_session.execute.call_args[0][0])
 
 
 # Test for the case when no last message is found
 @pytest.mark.asyncio
 async def test_get_last_message_id_no_result(mock_session):
-    """Test get_last_message_id when no message is found."""
-    mock_session.execute.return_value.scalar_one_or_none.return_value = None
+    """Test for the get_last_message_id method when no result is found."""
+    # Mock the query result to return None
+    mock_result = AsyncMock()
+    mock_result.scalar_one_or_none = Mock(return_value=None)
+    mock_session.execute = AsyncMock(return_value=mock_result)
 
-    result = await Message.get_last_message_id(mock_session, "test_channel")
+    # Call the method
+    result = await Message.get_last_message_id(mock_session, "non_existent_channel")
 
-    assert result is None
+    # Assertions
+    assert result is None  # Ensure it returns None when no message is found
+
+    # Verify the query
+    statement = (
+        select(Message.id)
+        .where(Message.channel == literal("non_existent_channel"))
+        .order_by(desc(Message.id))
+        .limit(1)
+    )
+    assert str(statement) == str(mock_session.execute.call_args[0][0])
 
 
 # Test for get_published_messages
 @pytest.mark.asyncio
 async def test_get_published_messages(mock_session, message_instance):
     """Test for the get_published_messages method."""
-    last_month = datetime.now() - timedelta(days=30)
 
-    # Mocking scalars() correctly as a coroutine that returns a mock object
-    mock_scalars = AsyncMock()
-    mock_scalars.all = AsyncMock(return_value=[message_instance])  # Mocking .all() correctly
-    mock_session.execute.return_value.scalars.return_value = mock_scalars
+    # Create a mock result for scalars().all()
+    mock_scalars = MagicMock()
+    mock_scalars.all.return_value = [message_instance]
+
+    # Mock execute().scalars() to return mock_scalars
+    mock_session.execute.return_value.scalars = MagicMock(return_value=mock_scalars)
 
     result = await Message.get_published_messages(mock_session)
 
+    # Assertions
     assert len(result) == 1
     assert result[0].channel == "test_channel"
-    mock_session.execute.assert_called_once_with(
-        select(Message).where(
-            Message.timestamp > last_month,
-            Message.published.isnot(None)
-        )
+
+    # Verify the query
+    last_month = datetime.now() - timedelta(days=30)
+    expected_query = select(Message).where(
+        Message.timestamp > last_month,
+        Message.published.isnot(None)
     )
+    assert str(expected_query) == str(mock_session.execute.call_args[0][0])
 
 
 # Test for get_unpublished_messages
@@ -84,21 +107,28 @@ async def test_get_published_messages(mock_session, message_instance):
 async def test_get_unpublished_messages(mock_session, message_instance):
     """Test for the get_unpublished_messages method."""
 
-    # Mocking scalars() correctly as a coroutine that returns a mock object
-    mock_scalars = AsyncMock()
-    mock_scalars.all = AsyncMock(return_value=[message_instance])  # Mocking .all() correctly
-    mock_session.execute.return_value.scalars.return_value = mock_scalars
+    # Create a mock result for scalars().all()
+    mock_scalars = MagicMock()
+    mock_scalars.all.return_value = [message_instance]
+
+    # Mock execute().scalars() to return mock_scalars
+    mock_session.execute.return_value.scalars = MagicMock(return_value=mock_scalars)
 
     result = await Message.get_unpublished_messages(mock_session)
 
+    # Assertions
     assert len(result) == 1
     assert result[0].channel == "test_channel"
-    mock_session.execute.assert_called_once_with(
+
+    # Verify the query
+    expected_query = (
         select(Message).where(
             Message.embedding.isnot(None),
             Message.published.is_(None)
         )
     )
+
+    assert str(expected_query) == str(mock_session.execute.call_args[0][0])
 
 
 # Test for saving a message
