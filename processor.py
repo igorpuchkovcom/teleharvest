@@ -7,8 +7,9 @@ from typing import List, Optional, Type, Sequence
 from models.message import Message
 from services.interfaces import ITelegramService, IOpenAIService, IAsyncDatabase, IEmbeddingService
 
-MIN_SCORE = 70
-MIN_SCORE_ALT = 80
+MIN_LEN = 200
+MIN_SCORE = 80
+MIN_SCORE_ALT = 90
 STOP_WORDS = ["эфир", "запись", "астролог", "зодиак", "таро", "эзотери"]
 
 logger = logging.getLogger(__name__)
@@ -71,6 +72,15 @@ class Processor:
     async def _process_message(self, message: Message) -> None:
         if not message.text:
             logger.debug(f"Skipping message ID {message.id}. No text content found")
+            return
+
+        if not message.channel:
+            logger.debug(f"Skipping message ID {message.id}. No channel name found")
+            return
+
+        message.text = re.sub(r'\s*\[.*?\]\(https?://[^\)]+\)$', '', message.text, flags=re.MULTILINE)
+        if len(message.text) < MIN_LEN:
+            logger.debug(f"Skipping message ID {message.id}. Text is too short.")
             return
 
         stop_word = await self._check_stop_words(message.text)
