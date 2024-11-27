@@ -2,6 +2,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import List
 
+from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 
 
@@ -24,8 +25,7 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-2024-05-13"
     openai_max_tokens: int = 2048
 
-    class Config:
-        env_file = ".env"
+    model_config = ConfigDict(env_file=".env")
 
     @staticmethod
     def load_prompt(file_name: str) -> str:
