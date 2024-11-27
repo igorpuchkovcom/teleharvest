@@ -9,7 +9,7 @@ class AsyncDatabase(IAsyncDatabase):
         self.engine = create_async_engine(f"mysql+aiomysql://{user}:{password}@{host}/{db}")
 
     async def __aenter__(self) -> 'AsyncDatabase':
-        self.session = async_sessionmaker(
+        self._session = async_sessionmaker(
             bind=self.engine,
             class_=AsyncSession,
             expire_on_commit=False
@@ -20,4 +20,4 @@ class AsyncDatabase(IAsyncDatabase):
         await self.engine.dispose()
 
     async def session(self) -> async_sessionmaker[Session]:
-        return self.session()
+        return self._session

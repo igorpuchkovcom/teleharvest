@@ -29,6 +29,7 @@ class Processor:
         self.openai_service = openai_service
         self.db = db
         self.embedding_service = embedding_service
+        self.published_messages = []
 
     async def __aenter__(self) -> 'Processor':
         await asyncio.gather(
@@ -49,7 +50,7 @@ class Processor:
         )
 
     async def fetch_and_process(self):
-        async with self.db.session() as session:
+        async with await self.db.session() as session:
             self.published_messages: Sequence[Message] = await Message.get_published_messages(session)
             for channel in self.telegram_service.channels:
                 last_message_id = await Message.get_last_message_id(session, channel)
@@ -57,7 +58,7 @@ class Processor:
                 await self.process(messages)
 
     async def process(self, messages: List[Message]) -> None:
-        async with self.db.session() as session:
+        async with await self.db.session() as session:
             for message in messages:
                 await self._process_message(message)
                 await message.save(session)
@@ -109,7 +110,7 @@ class Processor:
             )
 
     async def update_similarity(self):
-        async with self.db.session() as session:
+        async with await self.db.session() as session:
             published_messages: Sequence[Message] = await Message.get_published_messages(session)
             unpublished_messages: Sequence[Message] = await Message.get_unpublished_messages(session)
 
