@@ -5,7 +5,7 @@ from typing import Optional, List, Union, Sequence
 
 from sqlalchemy import Column, Integer, String, DateTime, Float, select, desc, literal, PrimaryKeyConstraint
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +17,8 @@ DAYS_IN_LAST_MONTH = 30
 class Message(Base):
     __tablename__ = 'post'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    channel = Column(String(255), nullable=False)
+    id = Column(Integer, primary_key=True)
+    channel = Column(String(255), primary_key=True, nullable=False)
     timestamp = Column(DateTime, nullable=False)
     text = Column(String, nullable=True)
     score = Column(Integer, nullable=True)
