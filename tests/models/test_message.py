@@ -162,3 +162,33 @@ async def test_repr(message_instance):
     assert "Test message" in result
     assert str(message_instance.id) in result
     assert "test_channel" in result
+
+
+@pytest.mark.asyncio
+async def test_get_last_message_id_exception(mock_session):
+    """Test get_last_message_id for exception handling."""
+
+    mock_session.execute.side_effect = Exception("Database error")
+
+    with pytest.raises(Exception, match="Database error"):
+        await Message.get_last_message_id(mock_session, "test_channel")
+
+
+@pytest.mark.asyncio
+async def test_get_published_messages_exception(mock_session):
+    """Test get_published_messages for exception handling."""
+
+    mock_session.execute.side_effect = Exception("Database error")
+
+    with pytest.raises(Exception, match="Database error"):
+        await Message.get_published_messages(mock_session)
+
+
+@pytest.mark.asyncio
+async def test_get_unpublished_messages_exception(mock_session):
+    """Test get_unpublished_messages for exception handling."""
+
+    mock_session.execute.side_effect = Exception("Database error")
+
+    with pytest.raises(Exception, match="Database error"):
+        await Message.get_unpublished_messages(mock_session)
