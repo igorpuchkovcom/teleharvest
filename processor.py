@@ -8,8 +8,8 @@ from models.message import Message
 from services.interfaces import ITelegramService, IOpenAIService, IAsyncDatabase, IEmbeddingService
 
 MIN_LEN = 200
-MIN_SCORE = 80
-MIN_SCORE_ALT = 90
+MIN_SCORE = 85
+MIN_SCORE_ALT = 95
 STOP_WORDS = ["эфир", "запись", "астролог", "зодиак", "таро", "эзотери"]
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,8 @@ class Processor:
         )
 
     async def fetch_and_process(self):
-        async with await self.db.session() as session:
+        session_maker = await self.db.session()
+        async with session_maker() as session:
             self.published_messages: Sequence[Message] = await Message.get_published_messages(session)
             for channel in self.telegram_service.channels:
                 last_message_id = await Message.get_last_message_id(session, channel)
@@ -58,7 +59,8 @@ class Processor:
                 await self.process(messages)
 
     async def process(self, messages: List[Message]) -> None:
-        async with await self.db.session() as session:
+        session_maker = await self.db.session()
+        async with session_maker() as session:
             for message in messages:
                 await self._process_message(message)
                 await message.save(session)
@@ -79,7 +81,7 @@ class Processor:
             logger.debug(f"Skipping message ID {message.id}. No channel name found")
             return
 
-        message.text = re.sub(r'\s*\[.*?\]\(https?://[^\)]+\)$', '', message.text, flags=re.MULTILINE)
+        message.text = re.sub(r'\s*\[.*?]\(https?://[^)]+\)$', '', message.text, flags=re.MULTILINE)
         if len(message.text) < MIN_LEN:
             logger.debug(f"Skipping message ID {message.id}. Text is too short.")
             return
@@ -110,7 +112,8 @@ class Processor:
             )
 
     async def update_similarity(self):
-        async with await self.db.session() as session:
+        session_maker = await self.db.session()
+        async with session_maker() as session:
             published_messages: Sequence[Message] = await Message.get_published_messages(session)
             unpublished_messages: Sequence[Message] = await Message.get_unpublished_messages(session)
 

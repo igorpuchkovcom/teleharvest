@@ -18,7 +18,7 @@ def telegram_service_mock():
 @pytest.fixture
 def openai_service_mock():
     service = AsyncMock()
-    service.get_evaluation.return_value = 85
+    service.get_evaluation.return_value = 86
     service.get_alt.return_value = "Alternative text"
     return service
 
@@ -26,10 +26,19 @@ def openai_service_mock():
 @pytest.fixture
 def db_mock():
     session_mock = AsyncMock()
-    session_cm_mock = AsyncMock()
-    session_cm_mock.__aenter__.return_value = session_mock
+
+    class AsyncSessionContextManager:
+        async def __aenter__(self):
+            return session_mock
+
+        async def __aexit__(self, exc_type, exc_value, traceback):
+            pass
+
+    def session_maker():
+        return AsyncSessionContextManager()
+
     db = AsyncMock()
-    db.session.return_value = session_cm_mock
+    db.session.return_value = session_maker
     return db
 
 
@@ -102,7 +111,7 @@ async def test_process_message_with_stop_words(processor):
 
 @pytest.mark.asyncio
 async def test_process_message_valid(processor, openai_service_mock, embedding_service_mock):
-    openai_service_mock.get_evaluation.side_effect = [85, 91]
+    openai_service_mock.get_evaluation.side_effect = [86, 96]
     embedding_service_mock.generate_embedding.return_value = "mock_embedding"
 
     message = Message(
@@ -113,8 +122,8 @@ async def test_process_message_valid(processor, openai_service_mock, embedding_s
     )
     await processor._process_message(message)
 
-    assert message.score == 85
-    assert message.score_alt == 91
+    assert message.score == 86
+    assert message.score_alt == 96
     assert message.embedding == "mock_embedding"
     openai_service_mock.get_alt.assert_called_once()
     embedding_service_mock.generate_embedding.assert_called_once()
@@ -137,7 +146,7 @@ async def test_process_message_no_text(processor, openai_service_mock, embedding
 
 @pytest.mark.asyncio
 async def test_process_message_low_score(processor, openai_service_mock, embedding_service_mock):
-    openai_service_mock.get_evaluation.side_effect = [50, 91]
+    openai_service_mock.get_evaluation.side_effect = [50, 96]
     embedding_service_mock.generate_embedding.return_value = "mock_embedding"
 
     message = Message(
@@ -157,7 +166,7 @@ async def test_process_message_low_score(processor, openai_service_mock, embeddi
 
 @pytest.mark.asyncio
 async def test_process_message_low_alt_score(processor, openai_service_mock, embedding_service_mock):
-    openai_service_mock.get_evaluation.side_effect = [85, 50]
+    openai_service_mock.get_evaluation.side_effect = [86, 50]
     embedding_service_mock.generate_embedding.return_value = "mock_embedding"
 
     message = Message(
@@ -168,7 +177,7 @@ async def test_process_message_low_alt_score(processor, openai_service_mock, emb
     )
     await processor._process_message(message)
 
-    assert message.score == 85
+    assert message.score == 86
     assert message.score_alt == 50
     assert message.embedding is None
     openai_service_mock.get_alt.assert_called_once()
@@ -252,7 +261,7 @@ async def test_update_similarity(processor, db_mock, embedding_service_mock):
 
 @pytest.mark.asyncio
 async def test_process_message_similarity_score(processor, openai_service_mock, embedding_service_mock):
-    openai_service_mock.get_evaluation.side_effect = [85, 91]
+    openai_service_mock.get_evaluation.side_effect = [86, 96]
 
     processor.published_messages = [
         Message(
