@@ -9,7 +9,7 @@ from services.interfaces import ITelegramService, IOpenAIService, IAsyncDatabase
 
 MIN_LEN = 200
 MIN_SCORE = 85
-MIN_SCORE_ALT = 95
+MIN_SCORE_ALT = 90
 STOP_WORDS = ["эфир", "запись", "астролог", "зодиак", "таро", "эзотери"]
 
 logger = logging.getLogger(__name__)
@@ -62,8 +62,9 @@ class Processor:
         session_maker = await self.db.session()
         async with session_maker() as session:
             for message in messages:
-                await self._process_message(message)
-                await message.save(session)
+                res = await self._process_message(message)
+                if res:
+                    await message.save(session)
 
     @staticmethod
     async def _check_stop_words(text: str) -> str:
@@ -72,36 +73,36 @@ class Processor:
                 logger.debug(f"Stop word '{word}' found in '{text}'")
                 return word
 
-    async def _process_message(self, message: Message) -> None:
+    async def _process_message(self, message: Message) -> bool:
         if not message.text:
             logger.debug(f"Skipping message ID {message.id}. No text content found")
-            return
+            return False
 
         if not message.channel:
             logger.debug(f"Skipping message ID {message.id}. No channel name found")
-            return
+            return False
 
         message.text = re.sub(r'\s*\[.*?]\(https?://[^)]+\)$', '', message.text, flags=re.MULTILINE)
         if len(message.text) < MIN_LEN:
             logger.debug(f"Skipping message ID {message.id}. Text is too short.")
-            return
+            return False
 
         stop_word = await self._check_stop_words(message.text)
         if stop_word:
             logger.debug(f"Skipping message ID {message.id}. Stop word '{stop_word}' found")
-            return
+            return False
 
         message.score = await self.openai_service.get_evaluation(message.text)
         if message.score is None or message.score <= MIN_SCORE:
             logger.debug(f"Skipping message ID {message.id} with score {message.score}")
-            return
+            return False
 
         logger.debug(f"Processing message ID {message.id}, channel: {message.channel}, text: {message.text[:50]}...")
         message.alt = await self.openai_service.get_alt(message.text)
         message.score_alt = await self.openai_service.get_evaluation(message.alt)
         if message.score_alt is None or message.score_alt <= MIN_SCORE_ALT:
             logger.debug(f"Skipping message ID {message.id} with score_alt {message.score_alt}")
-            return
+            return False
 
         message.embedding = await self.embedding_service.generate_embedding(message.alt)
         message.similarity_score = 0.0
@@ -110,6 +111,8 @@ class Processor:
             message.similarity_score = await self.embedding_service.calculate_max_similarity(
                 json.loads(message.embedding), self.published_messages
             )
+
+        return True
 
     async def update_similarity(self):
         session_maker = await self.db.session()

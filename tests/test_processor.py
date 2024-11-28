@@ -80,7 +80,6 @@ async def test_fetch_and_process(processor, telegram_service_mock, db_mock):
     await processor.fetch_and_process()
 
     telegram_service_mock.fetch_messages.assert_called_once_with("test_channel", 0)
-    Message.save.assert_called()  # Ensure messages are saved
 
 
 @pytest.mark.asyncio
