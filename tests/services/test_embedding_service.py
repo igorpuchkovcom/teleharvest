@@ -14,20 +14,20 @@ def embedding_service():
 
 
 @pytest.fixture
-def sample_messages():
+def messages():
     message1 = Message(
         id=1,
         channel="test_channel",
         timestamp=datetime.now(),
+        embedding=json.dumps([0.1, 0.2, 0.3])
     )
-    message1.embedding = json.dumps([0.1, 0.2, 0.3])
 
     message2 = Message(
         id=2,
         channel="test_channel",
         timestamp=datetime.now(),
+        embedding=json.dumps([0.4, 0.5, 0.6])
     )
-    message2.embedding = json.dumps([0.4, 0.5, 0.6])
 
     return [message1, message2]
 
@@ -55,10 +55,10 @@ async def test_generate_embedding_with_empty_text(embedding_service):
 
 
 @pytest.mark.asyncio
-async def test_calculate_max_similarity_with_messages(embedding_service, sample_messages):
+async def test_calculate_max_similarity_with_messages(embedding_service, messages):
     test_embedding = [0.1, 0.2, 0.3]
 
-    result = await embedding_service.calculate_max_similarity(test_embedding, sample_messages)
+    result = await embedding_service.calculate_max_similarity(test_embedding, messages)
 
     assert result > 0.0
     assert isinstance(result, float)
@@ -75,8 +75,8 @@ async def test_calculate_max_similarity_with_empty_messages(embedding_service):
 
 @pytest.mark.asyncio
 async def test_generate_embedding_handles_value_error(embedding_service):
-    with patch.object(embedding_service.model, 'encode') as mock_encode:
-        mock_encode.side_effect = ValueError("Test error")
+    with patch.object(embedding_service.model, 'encode') as encode:
+        encode.side_effect = ValueError("Test error")
 
         result = await embedding_service.generate_embedding("test text")
 
@@ -85,8 +85,8 @@ async def test_generate_embedding_handles_value_error(embedding_service):
 
 @pytest.mark.asyncio
 async def test_generate_embedding_handles_general_exception(embedding_service):
-    with patch.object(embedding_service.model, 'encode') as mock_encode:
-        mock_encode.side_effect = Exception("Unexpected error")
+    with patch.object(embedding_service.model, 'encode') as encode:
+        encode.side_effect = Exception("Unexpected error")
 
         result = await embedding_service.generate_embedding("test text")
 

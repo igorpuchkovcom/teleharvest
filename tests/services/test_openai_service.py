@@ -28,14 +28,14 @@ async def test_context_manager(openai_service):
 
 @pytest.mark.asyncio
 async def test_make_request_success(openai_service):
-    mock_response = Mock(spec=ChatCompletion)
-    mock_message = Mock(spec=ChatCompletionMessage)
-    mock_message.content = "Test response"
-    mock_choice = Mock(spec=Choice)
-    mock_choice.message = mock_message
-    mock_response.choices = [mock_choice]
+    response = Mock(spec=ChatCompletion)
+    message = Mock(spec=ChatCompletionMessage)
+    message.content = "Test response"
+    choice = Mock(spec=Choice)
+    choice.message = message
+    response.choices = [choice]
 
-    with patch.object(openai_service.client.chat.completions, 'create', return_value=mock_response):
+    with patch.object(openai_service.client.chat.completions, 'create', return_value=response):
         response = await openai_service.make_request("Test prompt")
         assert response == "Test response"
 
