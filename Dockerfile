@@ -4,8 +4,8 @@ FROM python:3.12
 # Set the working directory
 WORKDIR /app
 
-# Copy the requirements file into the container
-COPY requirements.txt ./
+# Copy project files into the container
+COPY . .
 
 # Install any dependencies
 RUN pip install --no-cache-dir -r requirements.txt
@@ -14,4 +14,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY main.py ./
 
 # Define the command to run the application
-CMD ["python", "collector.py"]
+CMD ["python", "main.py"]
