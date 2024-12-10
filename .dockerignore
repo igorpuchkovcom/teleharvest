@@ -7,3 +7,5 @@ __pycache__/
 .env
 *.log
 *.tmp
+session_name.session
+.coverage
