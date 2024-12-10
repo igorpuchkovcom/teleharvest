@@ -1,12 +1,20 @@
 import asyncio
 import logging
+import os
 
 from container import Container
 from settings import Settings
 
 
 async def main() -> None:
-    logging.basicConfig(level=logging.INFO)
+    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+
+    try:
+        logging_level = getattr(logging, log_level)
+    except AttributeError:
+        logging_level = logging.INFO
+
+    logging.basicConfig(level=logging_level)
     logger = logging.getLogger(__name__)
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
