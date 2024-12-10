@@ -7,7 +7,10 @@ from typing import List, Optional, Type, Sequence
 from models.message import Message
 from services.interfaces import ITelegramService, IOpenAIService, IAsyncDatabase, IEmbeddingService
 
+LIMIT = 1000
+MIN_VIEWS = 50
 MIN_LEN = 200
+MIN_ER = 0.025
 MIN_SCORE = 85
 MIN_SCORE_ALT = 90
 STOP_WORDS = ["эфир", "запись", "астролог", "зодиак", "таро", "эзотери"]
@@ -17,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class Processor:
     published_messages: Sequence[Message]
+    channel_min_id = {}
 
     def __init__(
             self,
@@ -54,17 +58,34 @@ class Processor:
         async with session_maker() as session:
             self.published_messages: Sequence[Message] = await Message.get_published_messages(session)
             for channel in self.telegram_service.channels:
-                last_message_id = await Message.get_last_message_id(session, channel)
-                messages = await self.telegram_service.fetch_messages(channel, last_message_id)
+                min_id = await Message.get_last_message_id(session, channel)
+                self.channel_min_id[channel] = min_id
+                messages = await self.telegram_service.fetch_messages(channel, min_id)
                 await self.process(messages)
+
+    async def fetch_and_update_metrics(self):
+        session_maker = await self.db.session()
+        async with session_maker() as session:
+            for channel in self.telegram_service.channels:
+                min_id = await Message.get_first_message_id(session, channel, LIMIT)
+                messages = await self.telegram_service.fetch_messages(channel, min_id, self.channel_min_id[channel])
+                await self.update_metrics(messages)
 
     async def process(self, messages: List[Message]) -> None:
         session_maker = await self.db.session()
         async with session_maker() as session:
+            for index, message in enumerate(messages):
+                is_last_message = (index == len(messages) - 1)
+                await self._process_message(message, is_last_message)
+                await message.save(session)
+
+    async def update_metrics(self, messages: List[Message]) -> None:
+        session_maker = await self.db.session()
+        async with session_maker() as session:
             for message in messages:
-                res = await self._process_message(message)
+                res = await self._update_metrics(message)
                 if res:
-                    await message.save(session)
+                    await message.update(session, views=message.views, reactions=message.reactions, forwards=message.forwards)
 
     @staticmethod
     async def _check_stop_words(text: str) -> str:
@@ -73,7 +94,7 @@ class Processor:
                 logger.debug(f"Stop word '{word}' found in '{text}'")
                 return word
 
-    async def _process_message(self, message: Message) -> bool:
+    async def _process_message(self, message: Message, last_message: bool = False) -> bool:
         if not message.text:
             logger.debug(f"Skipping message ID {message.id}. No text content found")
             return False
@@ -90,6 +111,11 @@ class Processor:
         stop_word = await self._check_stop_words(message.text)
         if stop_word:
             logger.debug(f"Skipping message ID {message.id}. Stop word '{stop_word}' found")
+            return False
+
+        er = (message.reactions + message.forwards) / message.views if message.views else 0
+        if (er < MIN_ER) and (message.views > MIN_VIEWS) and not last_message:
+            logger.debug(f"Skipping message ID {message.id} with ER {er}")
             return False
 
         message.score = await self.openai_service.get_evaluation(message.text)
@@ -111,6 +137,18 @@ class Processor:
             message.similarity_score = await self.embedding_service.calculate_max_similarity(
                 json.loads(message.embedding), self.published_messages
             )
+
+        return True
+
+    @staticmethod
+    async def _update_metrics(message: Message) -> bool:
+        if not message.views:
+            logger.debug(f"Skipping message ID {message.id}. No views value found")
+            return False
+
+        if not message.reactions:
+            logger.debug(f"Skipping message ID {message.id}. No reactions value found")
+            return False
 
         return True
 

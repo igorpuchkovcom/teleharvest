@@ -36,7 +36,7 @@ async def test_fetch_messages_with_last_message_id(telegram_service, client, mes
     client.get_messages.return_value = messages
 
     # Act
-    result = await telegram_service.fetch_messages("test_channel", last_message_id=100)
+    result = await telegram_service.fetch_messages("test_channel", min_id=100)
 
     # Assert
     assert len(result) == 1

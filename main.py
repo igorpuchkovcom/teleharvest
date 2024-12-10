@@ -23,6 +23,9 @@ async def main() -> None:
                 await processor.fetch_and_process()
                 logger.info("Updating similarity score")
                 await processor.update_similarity()
+                logger.info("Updating metrics")
+                await processor.fetch_and_update_metrics()
+
     except Exception as e:
         logger.error(f"An error occurred: {e}")
 

@@ -15,7 +15,7 @@ class ITelegramService(ABC):
     channels: List[str]
 
     @abstractmethod
-    async def fetch_messages(self, channel: str, last_message_id: Optional[int] = None) -> List[Message]:
+    async def fetch_messages(self, channel: str, min_id: Optional[int] = None, max_id: Optional[int] = None) -> List[Message]:
         raise NotImplementedError
 
 
