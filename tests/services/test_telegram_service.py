@@ -26,6 +26,8 @@ def messages():
     message.id = 123
     message.text = "Test message"
     message.date = datetime(2024, 1, 1, 12)
+    message.reactions = Mock()
+    message.reactions.results = [Mock(count=3), Mock(count=2)]
 
     return [message]
 

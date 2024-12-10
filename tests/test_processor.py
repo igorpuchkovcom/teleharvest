@@ -48,7 +48,10 @@ def message():
         id=1,
         text="Text message" * 30,
         channel="test_channel",
-        timestamp=datetime(2024, 11, 27, 12)
+        timestamp=datetime(2024, 11, 27, 12),
+        reactions=10,
+        forwards=5,
+        views=100,
     )
 
     return message
