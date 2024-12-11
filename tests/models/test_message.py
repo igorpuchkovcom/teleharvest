@@ -1,8 +1,9 @@
+import logging
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
-from sqlalchemy import literal, desc
+from sqlalchemy import literal, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -199,3 +200,157 @@ async def test_get_unpublished_messages_exception(session):
 
     with pytest.raises(Exception, match="Database error"):
         await Message.get_unpublished_messages(session)
+
+
+# Test for get_message
+@pytest.mark.asyncio
+async def test_get_message(session, message):
+    """Test for the get_message method."""
+    # Mock the query result
+    result = AsyncMock()
+    result.scalar_one_or_none = Mock(return_value=message)
+    session.execute = AsyncMock(return_value=result)
+
+    retrieved_message = await Message.get_message(session, message.id, message.channel)
+
+    assert retrieved_message == message
+
+    # Verify the query
+    statement = (
+        select(Message)
+        .where(
+            Message.id == literal(message.id),
+            Message.channel == literal(message.channel)
+        )
+    )
+    assert str(statement) == str(session.execute.call_args[0][0])
+
+
+@pytest.mark.asyncio
+async def test_get_message_not_found(session, message):
+    """Test for the get_message method when no result is found."""
+    # Mock the query result
+    result = AsyncMock()
+    result.scalar_one_or_none = Mock(return_value=None)
+    session.execute = AsyncMock(return_value=result)
+
+    retrieved_message = await Message.get_message(session, message.id, message.channel)
+
+    assert retrieved_message is None
+
+
+@pytest.mark.asyncio
+async def test_get_message_exception(session, message):
+    """Test get_message for exception handling."""
+    session.execute.side_effect = Exception("Database error")
+
+    with pytest.raises(Exception, match="Database error"):
+        await Message.get_message(session, message.id, message.channel)
+
+
+# Test for get_first_message_id
+@pytest.mark.asyncio
+async def test_get_first_message_id(session):
+    """Test for the get_first_message_id method."""
+    # Mock the query result
+    result = AsyncMock()
+    result.scalars = Mock(return_value=Mock(all=Mock(return_value=[1, 2, 3])))
+    session.execute = AsyncMock(return_value=result)
+
+    first_id = await Message.get_first_message_id(session, "test_channel")
+
+    assert first_id == 1
+
+    # Verify the query
+    statement = (
+        select(Message.id)
+        .where(Message.channel == literal("test_channel"))
+        .order_by(asc(Message.id))
+        .limit(1000)
+    )
+    assert str(statement) == str(session.execute.call_args[0][0])
+
+
+@pytest.mark.asyncio
+async def test_get_first_message_id_no_messages(session):
+    """Test for get_first_message_id when no messages exist."""
+    result = AsyncMock()
+    result.scalars = Mock(return_value=Mock(all=Mock(return_value=[])))
+    session.execute = AsyncMock(return_value=result)
+
+    first_id = await Message.get_first_message_id(session, "test_channel")
+
+    assert first_id is None
+
+
+@pytest.mark.asyncio
+async def test_get_first_message_id_exception(session):
+    """Test get_first_message_id for exception handling."""
+    session.execute.side_effect = Exception("Database error")
+
+    with pytest.raises(Exception, match="Database error"):
+        await Message.get_first_message_id(session, "test_channel")
+
+
+# Test for update
+@pytest.mark.asyncio
+async def test_update_message(session, message):
+    """Test for the update method."""
+    # Mock get_message to return the message
+    Message.get_message = AsyncMock(return_value=message)
+
+    await message.update(session, text="Updated text", score=100)
+
+    # Verify that attributes were updated
+    assert message.text == "Updated text"
+    assert message.score == 100
+
+    # Ensure the session was committed
+    session.add.assert_called_once_with(message)
+    session.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_update_message_not_found(session, message):
+    """Test for update method when the message does not exist."""
+    Message.get_message = AsyncMock(return_value=None)
+
+    await message.update(session, text="Updated text")
+
+    # Ensure no changes were made
+    session.add.assert_not_called()
+    session.commit.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_update_message_exception(session, message):
+    """Test update method for exception handling."""
+    Message.get_message = AsyncMock(side_effect=Exception("Database error"))
+
+    # Mock rollback as an async method
+    session.rollback = AsyncMock()
+
+    with pytest.raises(Exception, match="Database error"):
+        await message.update(session, text="Updated text")
+
+    session.rollback.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_update_message_invalid_field(session, message, caplog):
+    """Test for update method when an invalid field is passed."""
+    # Mock get_message to return the message
+    Message.get_message = AsyncMock(return_value=message)
+
+    with caplog.at_level(logging.DEBUG):
+        await message.update(session, invalid_field="Invalid value")
+
+    # Ensure the session was not updated
+    session.add.assert_called_once_with(message)
+    session.commit.assert_awaited_once()
+
+    # Verify the log message
+    assert any(
+        "Field 'invalid_field' does not exist on Message. Ignored." in record.message
+        for record in caplog.records
+    )

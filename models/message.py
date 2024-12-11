@@ -186,3 +186,4 @@ class Message(Base):
         except Exception as e:
             logger.error(f"Error updating message {self.id} channel {self.channel}: {e}")
             await session.rollback()
+            raise
