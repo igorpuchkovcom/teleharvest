@@ -99,3 +99,47 @@ async def test_create_message_objects(messages):
     assert result[0].channel == "test_channel"
     assert result[0].text == "Test message"
     assert result[0].timestamp == "2024-01-01 12:00:00"
+
+
+@pytest.mark.asyncio
+async def test_get_reactions(messages):
+    # Act
+    reactions_count = TelegramService._get_reactions(messages[0])
+
+    # Assert
+    assert reactions_count == 5  # 3 + 2 from the mocked reactions
+
+
+@pytest.mark.asyncio
+async def test_get_reactions_no_reactions():
+    # Arrange
+    message = Mock()
+    message.reactions = None
+
+    # Act
+    reactions_count = TelegramService._get_reactions(message)
+
+    # Assert
+    assert reactions_count == 0
+
+
+@pytest.mark.asyncio
+async def test_get_messages_with_max_id(client, telegram_service):
+    # Arrange
+    max_id = 200
+    client.get_messages.return_value = []
+
+    # Act
+    await telegram_service._get_messages("test_channel", max_id=max_id)
+
+    # Assert
+    client.get_messages.assert_called_once_with("test_channel", min_id=None, max_id=max_id)
+
+
+@pytest.mark.asyncio
+async def test_get_messages_without_min_id_and_max_id(client, telegram_service):
+    # Act
+    await telegram_service._get_messages("test_channel")
+
+    # Assert
+    client.get_messages.assert_called_once_with("test_channel", limit=10)
