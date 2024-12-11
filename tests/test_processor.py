@@ -114,6 +114,7 @@ async def test_process_message_valid(processor, openai_service, embedding_servic
 
 @pytest.mark.asyncio
 async def test_process_message_no_text(processor, openai_service, embedding_service, message):
+    message.text = None
     openai_service.get_evaluation.side_effect = [None, None]
     embedding_service.generate_embedding.return_value = "embedding"
 
@@ -153,6 +154,22 @@ async def test_process_message_low_alt_score(processor, openai_service, embeddin
     openai_service.get_alt.assert_called_once()
     embedding_service.generate_embedding.assert_not_called()
 
+
+@pytest.mark.asyncio
+async def test_process_message_low_er(processor, openai_service, embedding_service, message):
+    message.reactions = 0
+    message.forwards = 0
+    message.views = 100
+    openai_service.get_evaluation.side_effect = [None, None]
+    embedding_service.generate_embedding.return_value = "embedding"
+
+    await processor._process_message(message)
+
+    assert message.score is None
+    assert message.score_alt is None
+    assert message.embedding is None
+    openai_service.get_alt.assert_not_called()
+    embedding_service.generate_embedding.assert_not_called()
 
 @pytest.mark.asyncio
 async def test_process_message_no_channel(processor, openai_service, embedding_service, message):
@@ -269,3 +286,35 @@ async def test_processor_context_manager(
     openai_service.__aexit__.assert_called_once_with(None, None, None)
     db.__aenter__.assert_called_once()
     db.__aexit__.assert_called_once_with(None, None, None)
+
+
+@pytest.mark.asyncio
+async def test_fetch_and_update_metrics(processor, telegram_service, db, message):
+    # Mock database methods
+    Message.get_first_message_id = AsyncMock(return_value=0)
+    Message.save = AsyncMock()
+
+    # Mock Telegram service to return messages
+    telegram_service.fetch_messages.return_value = [message]
+
+    await processor.fetch_and_update_metrics()
+
+    telegram_service.fetch_messages.assert_called_once_with("test_channel", 0, 0)
+
+
+
+@pytest.mark.asyncio
+async def test_update_metrics_no_views_or_reactions(processor, message):
+    message.views = None
+    message.reactions = None
+
+    result = await processor._update_metrics(message)
+    assert not result
+
+    message.views = 10
+    result = await processor._update_metrics(message)
+    assert not result
+
+    message.reactions = 5
+    result = await processor._update_metrics(message)
+    assert result
