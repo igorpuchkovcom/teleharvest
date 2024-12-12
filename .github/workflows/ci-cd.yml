@@ -22,20 +22,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run tests with coverage
+      - name: Run tests with coverage and generate JUnit XML report
         run: |
-          coverage run -m pytest --maxfail=1 --disable-warnings
+          coverage run -m pytest --maxfail=1 --disable-warnings --junitxml=report.xml
           coverage report --fail-under=80
-          coverage html
           coverage xml
 
       - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
         uses: codecov/test-results-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: report.xml
 
-      - name: Upload coverage report to GitHub
+      - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
