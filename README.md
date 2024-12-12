@@ -151,3 +151,5 @@ You can also run the tests asynchronously with the `pytest-asyncio` plugin.
 
 Feel free to fork this repository and submit pull requests with improvements, bug fixes, or new features. Ensure that
 tests are included for new features or bug fixes.
+
+[![codecov](https://codecov.io/github/igorpuchkovcom/teleharvest/graph/badge.svg?token=941ZCWBM6T)](https://codecov.io/github/igorpuchkovcom/teleharvest)
