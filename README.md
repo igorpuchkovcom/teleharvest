@@ -73,8 +73,11 @@ CREATE TABLE `post` (
   `embedding` text DEFAULT NULL,
   `similarity_score` float DEFAULT NULL,
   `published` datetime DEFAULT NULL,
+  `views` int(10) unsigned DEFAULT NULL,
+  `reactions` int(10) unsigned DEFAULT NULL,
+  `forwards` int(10) unsigned DEFAULT NULL,
   PRIMARY KEY (`id`,`channel`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 ```
 
 ## Configuration
