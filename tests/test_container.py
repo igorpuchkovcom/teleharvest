@@ -2,6 +2,7 @@ from unittest import mock
 
 import pytest
 from telethon import TelegramClient
+from telethon.sessions import MemorySession
 
 from container import Container
 from models.async_database import AsyncDatabase
@@ -35,10 +36,14 @@ def container(settings):
     return Container(settings)
 
 
-def test_get_telegram_client(container, settings):
-    with mock.patch.object(TelegramClient, '__init__', return_value=None):
-        telegram_client = container.get_telegram_client()
-        assert telegram_client is not None
+def get_telegram_client(self) -> TelegramClient:
+    return self._get_service(
+        'telegram_client',
+        TelegramClient,
+        MemorySession(),
+        self.settings.telegram_api_id,
+        self.settings.telegram_api_hash
+    )
 
 
 def test_get_telegram_service(container, settings):
@@ -70,7 +75,10 @@ def test_get_embedding_service(container, settings):
 
 
 def test_get_processor(container, settings):
-    with mock.patch.object(Processor, '__init__', return_value=None):
+    with mock.patch.object(TelegramClient, '__init__', return_value=None), \
+         mock.patch.object(TelegramClient, 'connect', return_value=None), \
+         mock.patch.object(TelegramClient, 'disconnect', return_value=None), \
+         mock.patch.object(Processor, '__init__', return_value=None):
         processor = container.get_processor()
         assert isinstance(processor, Processor)
         assert processor is not None
