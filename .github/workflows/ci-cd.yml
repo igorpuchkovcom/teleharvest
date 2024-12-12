@@ -24,7 +24,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          coverage run -m pytest --maxfail=1 --disable-warnings -q --cov --junitxml=junit.xml -o junit_family=legacy
+          coverage run -m pytest --maxfail=1 --disable-warnings
           coverage report --fail-under=80
           coverage html
           coverage xml
