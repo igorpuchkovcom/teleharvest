@@ -36,16 +36,6 @@ def container(settings):
     return Container(settings)
 
 
-def get_telegram_client(self) -> TelegramClient:
-    return self._get_service(
-        'telegram_client',
-        TelegramClient,
-        MemorySession(),
-        self.settings.telegram_api_id,
-        self.settings.telegram_api_hash
-    )
-
-
 def test_get_telegram_service(container, settings):
     with mock.patch.object(TelegramService, '__init__', return_value=None):
         telegram_service = container.get_telegram_service()
