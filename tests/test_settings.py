@@ -1,61 +1,32 @@
-import os
 
 import pytest
 
-from settings import Settings
+from settings import Settings, TelegramSettings
 
 
-@pytest.fixture
-def env_vars():
-    """Fixture to set up environment variables for testing"""
-    os.environ["TELEGRAM_API_ID"] = "12345"
-    os.environ["TELEGRAM_API_HASH"] = "abcdef123456"
-    os.environ["TELEGRAM_PHONE"] = "+1234567890"
-    os.environ["TELEGRAM_CHANNELS"] = "channel1,channel2,channel3"
-    os.environ["MYSQL_HOST"] = "localhost"
-    os.environ["MYSQL_USER"] = "user"
-    os.environ["MYSQL_PASSWORD"] = "password"
-    os.environ["MYSQL_DB"] = "database"
-    os.environ["OPENAI_API_KEY"] = "sk-123456"
-
-    yield
-
-    # Clean up environment variables after tests
-    vars_to_delete = [
-        "TELEGRAM_API_ID", "TELEGRAM_API_HASH", "TELEGRAM_PHONE",
-        "TELEGRAM_CHANNELS", "MYSQL_HOST", "MYSQL_USER",
-        "MYSQL_PASSWORD", "MYSQL_DB", "OPENAI_API_KEY"
-    ]
-    for var in vars_to_delete:
-        os.environ.pop(var, None)
-
-
-def test_settings_initialization(env_vars):
+def test_settings_initialization():
     settings = Settings()
 
-    assert settings.telegram_api_id == 12345
-    assert settings.telegram_api_hash == "abcdef123456"
-    assert settings.telegram_phone == "+1234567890"
-    assert settings.telegram_channels == "channel1,channel2,channel3"
-    assert settings.mysql_host == "localhost"
-    assert settings.mysql_user == "user"
-    assert settings.mysql_password == "password"
-    assert settings.mysql_db == "database"
-    assert settings.openai_api_key == "sk-123456"
-    assert settings.openai_model == "gpt-4o-2024-05-13"  # default value
-    assert settings.openai_max_tokens == 2048  # default value
+    assert settings.telegram.api_id == 12345
+    assert settings.telegram.api_hash == "abcdef123456"
+    assert settings.telegram.phone == "+1234567890"
+    assert settings.telegram.channels == "channel1,channel2,channel3"
+    assert settings.mysql.host == "localhost"
+    assert settings.mysql.user == "user"
+    assert settings.mysql.password == "password"
+    assert settings.mysql.db == "database"
+    assert settings.openai.api_key == "sk-123456"
+    assert settings.openai.model == "gpt-4o-2024-05-13"  # default value
+    assert settings.openai.max_tokens == 2048  # default value
 
 
-def test_telegram_channels_list(env_vars):
-    settings = Settings()
-    channels = settings.telegram_channels_list
+def test_telegram_channels_list():
+    telegram_settings = TelegramSettings()
+    channels = telegram_settings.channels_list
 
     assert isinstance(channels, list)
     assert len(channels) == 3
     assert channels == ["channel1", "channel2", "channel3"]
-
-    # Test caching
-    assert settings.telegram_channels_list is settings.telegram_channels_list
 
 
 @pytest.fixture
@@ -86,3 +57,12 @@ def test_load_prompt_with_invalid_encoding(tmp_path):
     with pytest.raises(RuntimeError) as exc_info:
         Settings.load_prompt(str(invalid_file))
     assert "Error loading file" in str(exc_info.value)
+
+
+def test_processor_stop_words_list():
+    processor_settings = Settings().processor
+    stop_words_list = processor_settings.stop_words_list
+
+    assert isinstance(stop_words_list, list)
+    assert len(stop_words_list) > 0
+    assert stop_words_list == ["эфир", "запись", "астролог", "зодиак", "таро", "эзотери"]

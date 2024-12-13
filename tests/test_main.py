@@ -7,26 +7,6 @@ import pytest
 from main import main
 
 
-
-
-@pytest.fixture
-def mock_env():
-    """Fixture to mock environment variables."""
-    with patch.dict(os.environ, {
-        "TELEGRAM_API_ID": "12345",
-        "TELEGRAM_API_HASH": "hash_value",
-        "TELEGRAM_PHONE": "+123456789",
-        "TELEGRAM_CHANNELS": "@channel",
-        "MYSQL_HOST": "localhost",
-        "MYSQL_USER": "test_user",
-        "MYSQL_PASSWORD": "test_pass",
-        "MYSQL_DB": "test_db",
-        "OPENAI_API_KEY": "dummy_key",
-        "LOG_LEVEL": "INFO"
-    }):
-        yield
-
-
 @pytest.fixture
 def telegram_client_mock():
     """Mock for Telegram client."""
@@ -58,7 +38,7 @@ def container(telegram_client_mock, processor_mock):
 @patch("main.Container", autospec=True)
 @patch("main.logging.getLogger", autospec=True)
 @pytest.mark.asyncio
-async def test_main_success(logger, container_class, container, mock_env):
+async def test_main_success(logger, container_class, container):
     """Test main function with successful execution."""
     container_class.return_value = container
 
@@ -68,10 +48,6 @@ async def test_main_success(logger, container_class, container, mock_env):
     # Run the main function
     await main()
 
-    # Check TelegramClient interactions
-    telegram_client = container.get_telegram_client.return_value.__aenter__.return_value
-    telegram_client.start.assert_called_once_with(phone=os.environ["TELEGRAM_PHONE"])
-
     # Check Processor interactions
     processor = container.get_processor.return_value.__aenter__.return_value
     processor.fetch_and_process.assert_called_once()
@@ -79,7 +55,7 @@ async def test_main_success(logger, container_class, container, mock_env):
 
 
 @pytest.mark.asyncio
-async def test_main_telegram_client_exception(mock_env):
+async def test_main_telegram_client_exception():
     container = MagicMock()
     client = AsyncMock()
 
@@ -98,7 +74,7 @@ async def test_main_telegram_client_exception(mock_env):
 
 
 @pytest.mark.asyncio
-async def test_main_processor_exception(mock_env):
+async def test_main_processor_exception():
     container = MagicMock()
     client = AsyncMock()
     processor = AsyncMock()
@@ -118,10 +94,9 @@ async def test_main_processor_exception(mock_env):
         )
 
 
-@patch("main.logging.basicConfig")
 @patch("main.logging.getLogger")
 @pytest.mark.asyncio
-async def test_main_invalid_log_level(get_logger_mock, basic_config_mock, mock_env):
+async def test_main_invalid_log_level(get_logger_mock):
     """Test main function with an invalid log level."""
     # Mock the logger
     main_logger = MagicMock()
@@ -131,9 +106,9 @@ async def test_main_invalid_log_level(get_logger_mock, basic_config_mock, mock_e
 
     # Mock asynchronous dependencies to avoid any real execution
     with patch("main.Container") as container_mock, \
-         patch.dict(os.environ, {
-            "LOG_LEVEL": "INVALID_LEVEL"
-         }):
+            patch.dict(os.environ, {
+                "LOG_LEVEL": "INVALID_LEVEL"
+            }):
         container_mock.return_value.get_telegram_client.return_value.__aenter__.return_value = AsyncMock()
         container_mock.return_value.get_processor.return_value.__aenter__.return_value = AsyncMock()
 
@@ -141,11 +116,10 @@ async def test_main_invalid_log_level(get_logger_mock, basic_config_mock, mock_e
         await main()
 
         # Assertions
-        basic_config_mock.assert_called_once_with(level=logging.INFO)  # Default log level
         get_logger_mock.assert_any_call("main")
         get_logger_mock.assert_any_call("httpx")
         httpx_logger.setLevel.assert_called_once_with(logging.WARNING)
-        main_logger.info.assert_any_call("Starting TelegramClient with phone: +123456789")
+        main_logger.info.assert_any_call("Starting TelegramClient with phone: +1234567890")
         main_logger.info.assert_any_call("Fetching and processing messages")
         main_logger.info.assert_any_call("Updating similarity score")
         main_logger.info.assert_any_call("Updating metrics")

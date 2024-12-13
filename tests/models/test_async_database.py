@@ -2,38 +2,34 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from models.async_database import AsyncDatabase
+from settings import Settings
 
 
 @pytest.fixture
-def db_settings():
-    """Provide test database settings."""
-    return {
-        "host": "localhost",
-        "user": "test_user",
-        "password": "test_password",
-        "db": "test_db"
-    }
+def config():
+    settings = Settings()
+    return settings.mysql
 
 
 @pytest.fixture
-async def async_database(db_settings):
+async def async_database(config):
     """Fixture to initialize AsyncDatabase instance."""
-    return AsyncDatabase(**db_settings)
+    return AsyncDatabase(config)
 
 
 @pytest.mark.asyncio
-async def test_async_database_initialization(db_settings):
+async def test_async_database_initialization(config):
     """Test AsyncDatabase initialization."""
-    db = AsyncDatabase(**db_settings)
+    db = AsyncDatabase(config)
     assert db.engine is not None
-    assert db.engine.url.host == db_settings["host"]
-    assert db.engine.url.database == db_settings["db"]
+    assert db.engine.url.host == config.host
+    assert db.engine.url.database == config.db
 
 
 @pytest.mark.asyncio
-async def test_async_database_context_manager(db_settings):
+async def test_async_database_context_manager(config):
     """Test AsyncDatabase context manager functionality."""
-    async with AsyncDatabase(**db_settings) as db:
+    async with AsyncDatabase(config) as db:
         assert db.session is not None
         assert callable(db.session)
 

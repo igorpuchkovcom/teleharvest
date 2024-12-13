@@ -1,18 +1,23 @@
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, AsyncMock
 
 import pytest
 from openai.types.chat import ChatCompletion, ChatCompletionMessage
 from openai.types.chat.chat_completion import Choice
 
 from services.openai_service import OpenAIService
+from settings import Settings
 
 
 @pytest.fixture
-def openai_service():
+def config():
+    settings = Settings()
+    return settings.openai
+
+
+@pytest.fixture
+def openai_service(config):
     service = OpenAIService(
-        api_key="test_key",
-        model="gpt-3.5-turbo",
-        max_tokens=100,
+        config=config,
         prompt_process="Process: {text}",
         prompt_evaluate="Evaluate: {text}"
     )
