@@ -24,8 +24,8 @@ class Container:
             'telegram_client',
             TelegramClient,
             'session_name',
-            self.settings.telegram_api_id,
-            self.settings.telegram_api_hash
+            self.settings.telegram.api_id,
+            self.settings.telegram.api_hash
         )
 
     def get_telegram_service(self) -> ITelegramService:
@@ -33,16 +33,14 @@ class Container:
             'telegram_service',
             TelegramService,
             self.get_telegram_client(),
-            self.settings.telegram_channels_list
+            self.settings.telegram.channels_list
         )
 
     def get_openai_service(self) -> IOpenAIService:
         return self._get_service(
             'openai_service',
             OpenAIService,
-            self.settings.openai_api_key,
-            self.settings.openai_model,
-            self.settings.openai_max_tokens,
+            self.settings.openai,
             self.settings.load_prompt('process.txt'),
             self.settings.load_prompt('evaluate.txt')
         )
@@ -51,10 +49,7 @@ class Container:
         return self._get_service(
             'db',
             AsyncDatabase,
-            self.settings.mysql_host,
-            self.settings.mysql_user,
-            self.settings.mysql_password,
-            self.settings.mysql_db
+            self.settings.mysql
         )
 
     def get_embedding_service(self) -> IEmbeddingService:
@@ -64,11 +59,13 @@ class Container:
         )
 
     def get_processor(self) -> Processor:
+
         return self._get_service(
             'processor',
             Processor,
             self.get_telegram_service(),
             self.get_openai_service(),
             self.get_database(),
-            self.get_embedding_service()
+            self.get_embedding_service(),
+            self.settings.processor,
         )

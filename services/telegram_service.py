@@ -55,5 +55,5 @@ class TelegramService(ITelegramService):
                 views=msg.views,
                 reactions=TelegramService._get_reactions(msg),
                 forwards=msg.forwards
-        ) for msg in messages
+            ) for msg in messages
         ]

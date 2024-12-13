@@ -1,30 +1,23 @@
 import asyncio
 import logging
-import os
 
 from container import Container
 from settings import Settings
 
 
 async def main() -> None:
-    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    settings: Settings = Settings()
 
-    try:
-        logging_level = getattr(logging, log_level)
-    except AttributeError:
-        logging_level = logging.INFO
-
-    logging.basicConfig(level=logging_level)
+    logging.basicConfig(level=settings.log_level)
     logger = logging.getLogger(__name__)
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
-    settings: Settings = Settings()
     container: Container = Container(settings)
 
     try:
         async with container.get_telegram_client() as client:
-            logger.info(f"Starting TelegramClient with phone: {settings.telegram_phone}")
-            await client.start(phone=settings.telegram_phone)
+            logger.info(f"Starting TelegramClient with phone: {settings.telegram.phone}")
+            await client.start(phone=settings.telegram.phone)
 
             async with container.get_processor() as processor:
                 logger.info("Fetching and processing messages")

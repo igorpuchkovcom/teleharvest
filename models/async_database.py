@@ -1,11 +1,12 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
 from services.interfaces import IAsyncDatabase
+from settings import MysqlSettings
 
 
 class AsyncDatabase(IAsyncDatabase):
-    def __init__(self, host: str, user: str, password: str, db: str):
-        self.engine = create_async_engine(f"mysql+aiomysql://{user}:{password}@{host}/{db}")
+    def __init__(self, config: MysqlSettings):
+        self.engine = create_async_engine(f"mysql+aiomysql://{config.user}:{config.password}@{config.host}/{config.db}")
         self._session_maker = async_sessionmaker(
             bind=self.engine,
             class_=AsyncSession,

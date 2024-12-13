@@ -5,16 +5,17 @@ import aiohttp
 from openai import OpenAI
 
 from services.interfaces import IOpenAIService
+from settings import OpenAISettings
 
 logger = logging.getLogger(__name__)
 
 
 class OpenAIService(IOpenAIService):
 
-    def __init__(self, api_key: str, model: str, max_tokens: int, prompt_process: str, prompt_evaluate: str):
-        self.api_key = api_key
-        self.model = model
-        self.max_tokens = max_tokens
+    def __init__(self, config: OpenAISettings, prompt_process: str, prompt_evaluate: str):
+        self.api_key = config.api_key
+        self.model = config.model
+        self.max_tokens = config.max_tokens
         self.prompt_process = prompt_process
         self.prompt_evaluate = prompt_evaluate
         self.client = OpenAI(api_key=self.api_key)

@@ -2,30 +2,64 @@ from functools import cached_property
 from pathlib import Path
 from typing import List
 
-from pydantic import ConfigDict
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class ProcessorSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_file='.env', env_prefix='PROCESSOR_', extra='allow')
+
+    limit: int = 1000
+    min_views: int = 50
+    min_len: int = 200
+    min_er: float = 0.025
+    min_score: int = 80
+    min_score_alt: int = 85
+    stop_words: str = ''
+
+    @cached_property
+    def stop_words_list(self) -> List[str]:
+        return self.stop_words.split(',')
+
+
+class TelegramSettings(BaseSettings):
+    api_id: int
+    api_hash: str
+    phone: str
+    channels: str
+
+    model_config = SettingsConfigDict(env_file='.env', env_prefix='TELEGRAM_', extra='allow')
+
+    @cached_property
+    def channels_list(self) -> List[str]:
+        return self.channels.split(',')
+
+
+class MysqlSettings(BaseSettings):
+    host: str
+    user: str
+    password: str
+    db: str
+
+    model_config = SettingsConfigDict(env_file='.env', env_prefix='MYSQL_', extra='allow')
+
+
+class OpenAISettings(BaseSettings):
+    api_key: str
+    model: str = "gpt-4o-2024-05-13"
+    max_tokens: int = 2048
+
+    model_config = SettingsConfigDict(env_file='.env', env_prefix='OPENAI_', extra='allow')
 
 
 class Settings(BaseSettings):
-    telegram_api_id: int
-    telegram_api_hash: str
-    telegram_phone: str
-    telegram_channels: str
+    telegram: TelegramSettings = TelegramSettings()
+    mysql: MysqlSettings = MysqlSettings()
+    openai: OpenAISettings = OpenAISettings()
+    processor: ProcessorSettings = ProcessorSettings()
 
-    @cached_property
-    def telegram_channels_list(self) -> List[str]:
-        return self.telegram_channels.split(',')
+    log_level: str = "INFO"
 
-    mysql_host: str
-    mysql_user: str
-    mysql_password: str
-    mysql_db: str
-
-    openai_api_key: str
-    openai_model: str = "gpt-4o-2024-05-13"
-    openai_max_tokens: int = 2048
-
-    model_config = ConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file='.env', extra='allow')
 
     @staticmethod
     def load_prompt(file_name: str) -> str:
