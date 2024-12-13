@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import Mock, patch
 
 import pytest
 from openai.types.chat import ChatCompletion, ChatCompletionMessage
@@ -19,7 +19,8 @@ def openai_service(config):
     service = OpenAIService(
         config=config,
         prompt_process="Process: {text}",
-        prompt_evaluate="Evaluate: {text}"
+        prompt_evaluate="Evaluate: {text}",
+        prompt_improve="Improve: {text}"
     )
     return service
 
@@ -82,4 +83,17 @@ async def test_get_alt_success(openai_service):
 @pytest.mark.asyncio
 async def test_get_alt_empty_text(openai_service):
     result = await openai_service.get_alt("")
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_improve_success(openai_service):
+    with patch.object(openai_service, 'make_request', return_value="Processed text"):
+        result = await openai_service.get_improve("Test text")
+        assert result == "Processed text"
+
+
+@pytest.mark.asyncio
+async def test_get_improve_empty_text(openai_service):
+    result = await openai_service.get_improve("")
     assert result is None

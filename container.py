@@ -42,7 +42,8 @@ class Container:
             OpenAIService,
             self.settings.openai,
             self.settings.load_prompt('process.txt'),
-            self.settings.load_prompt('evaluate.txt')
+            self.settings.load_prompt('evaluate.txt'),
+            self.settings.load_prompt('improve.txt')
         )
 
     def get_database(self) -> IAsyncDatabase:

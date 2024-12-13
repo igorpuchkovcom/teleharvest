@@ -110,7 +110,7 @@ async def test_process_message_short_text(processor, message):
 async def test_process_message_valid(processor, openai_service, embedding_service, message):
     processor.published_messages = [message]
 
-    openai_service.get_evaluation.side_effect = [86, 96]
+    openai_service.get_evaluation.side_effect = [86, 96, 96]
     embedding_service.generate_embedding.return_value = json.dumps([0.1, 0.2, 0.3])
     embedding_service.calculate_max_similarity.return_value = 0.8
 
@@ -121,6 +121,7 @@ async def test_process_message_valid(processor, openai_service, embedding_servic
     assert message.alt == "Alternative text"
     assert message.score_alt == 96
     assert message.embedding == json.dumps([0.1, 0.2, 0.3])
+    assert message.score_improve == 96
     assert message.similarity_score == 0.8
 
 
@@ -227,7 +228,7 @@ async def test_process_message_low_er_and_views(processor, message):
 
 @pytest.mark.asyncio
 async def test_process_message_similarity_score(processor, openai_service, embedding_service, message):
-    openai_service.get_evaluation.side_effect = [86, 96]
+    openai_service.get_evaluation.side_effect = [86, 96, 96]
 
     processor.published_messages = [message]
 
@@ -401,3 +402,20 @@ async def test_update_metrics_no_valid_data(processor, message):
     # Assert
     processor._update_metrics.assert_called_once_with(message)
     message.update.assert_not_called()  # Update should not be called due to invalid data
+
+
+@pytest.mark.asyncio
+async def test_process_message_low_score_improve(processor, openai_service, embedding_service, message):
+    openai_service.get_evaluation.side_effect = [86, 96, 50]
+    embedding_service.generate_embedding.return_value = json.dumps([0.1, 0.2, 0.3])
+    embedding_service.calculate_max_similarity.return_value = 0.8
+
+    result = await processor._process_message(message)
+
+    assert not result
+    assert message.score == 86
+    assert message.score_alt == 96
+    assert message.score_improve == 50
+    embedding_service.generate_embedding.assert_called_once()
+    openai_service.get_alt.assert_called_once()
+    openai_service.get_improve.assert_called_once()

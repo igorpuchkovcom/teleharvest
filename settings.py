@@ -14,6 +14,7 @@ class ProcessorSettings(BaseSettings):
     min_er: float = 0.025
     min_score: int = 80
     min_score_alt: int = 85
+    min_score_improve: int = 85
     stop_words: str = ''
 
     @cached_property

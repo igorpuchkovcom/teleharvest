@@ -24,6 +24,8 @@ class Message(Base):
     score = Column(Integer, nullable=True)
     alt = Column(String, nullable=True)
     score_alt = Column(Integer, nullable=True)
+    improve = Column(String, nullable=True)
+    score_improve = Column(Integer, nullable=True)
     embedding = Column(String, nullable=True)
     similarity_score = Column(Float, nullable=True)
     published = Column(DateTime, nullable=True)
@@ -43,6 +45,8 @@ class Message(Base):
                  score: Optional[int] = None,
                  alt: Optional[str] = None,
                  score_alt: Optional[int] = None,
+                 improve: Optional[str] = None,
+                 score_improve: Optional[int] = None,
                  embedding: Optional[Union[str, List[float]]] = None,
                  similarity_score: Optional[float] = None,
                  published: datetime = None,
@@ -58,6 +62,8 @@ class Message(Base):
             score=score,
             alt=alt,
             score_alt=score_alt,
+            improve=improve,
+            score_improve=score_improve,
             embedding=json.dumps(embedding) if isinstance(embedding, list) else embedding,
             similarity_score=similarity_score,
             published=published,

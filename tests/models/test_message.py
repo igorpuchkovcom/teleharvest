@@ -32,7 +32,9 @@ def message():
         text="Test message",
         score=90,
         alt="Alternative text",
-        score_alt=80
+        score_alt=80,
+        improve="Improved text",
+        score_improve=80
     )
 
 

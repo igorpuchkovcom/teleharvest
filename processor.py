@@ -84,7 +84,7 @@ class Processor:
                                          forwards=message.forwards)
 
     async def _check_stop_words(self, text: str) -> str:
-        for word in self.config.stop_words:
+        for word in self.config.stop_words_list:
             if re.search(word, text):
                 logger.debug(f"Stop word '{word}' found in '{text}'")
                 return word
@@ -132,6 +132,13 @@ class Processor:
             message.similarity_score = await self.embedding_service.calculate_max_similarity(
                 json.loads(message.embedding), self.published_messages
             )
+
+        logger.debug(f"Improoving message ID {message.id}, channel: {message.channel}, text: {message.text[:50]}...")
+        message.improve = await self.openai_service.get_improve(message.alt)
+        message.score_improve = await self.openai_service.get_evaluation(message.improve)
+        if message.score_improve is None or message.score_improve <= self.config.min_score_improve:
+            logger.debug(f"Skipping message ID {message.id} with score_improve {message.score_improve}")
+            return False
 
         return True
 
