@@ -42,19 +42,29 @@ pip install -r requirements.txt
 
 ```makefile
 # Telegram API Configuration
-TELEGRAM_API_ID=your_telegram_api_id
-TELEGRAM_API_HASH=your_telegram_api_hash
-TELEGRAM_PHONE=your_telegram_phone_number
-TELEGRAM_CHANNELS=@channel1,@channel2,@channel3,... # Add your Telegram channels here
+TELEGRAM_API_ID=12345
+TELEGRAM_API_HASH=abcdef123456
+TELEGRAM_PHONE=+1234567890
+TELEGRAM_CHANNELS=channel1,channel2,channel3
 
 # OpenAI API Configuration
-OPENAI_API_KEY=your_openai_api_key
+OPENAI_API_KEY=sk-123456
 
 # MySQL Database Configuration
-MYSQL_HOST=your_mysql_host
-MYSQL_USER=your_mysql_user
-MYSQL_PASSWORD=your_mysql_password
-MYSQL_DB=your_mysql_database
+MYSQL_HOST=localhost
+MYSQL_USER=user
+MYSQL_PASSWORD=password
+MYSQL_DB=database
+
+# Message processing configuration
+PROCESSOR_LIMIT=1000
+PROCESSOR_MIN_VIEWS=50
+PROCESSOR_MIN_LEN=200
+PROCESSOR_MIN_ER=0.025
+PROCESSOR_MIN_SCORE=80
+PROCESSOR_MIN_SCORE_ALT=85
+PROCESSOR_STOP_WORDS=эфир,запись,астролог,зодиак,таро,эзотери
+LOG_LEVEL=DEBUG
 ```
 
 ### 4. Initialize the database schema by running your database migration script.
