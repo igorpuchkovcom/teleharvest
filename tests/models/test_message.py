@@ -12,7 +12,7 @@ from models.message import Message
 
 # Mocking database session and query results
 @pytest.fixture
-def session():
+def session() -> MagicMock:
     """Fixture to create a mocked database session."""
     session = MagicMock(spec=AsyncSession)
     session.execute = AsyncMock()
@@ -23,7 +23,7 @@ def session():
 
 
 @pytest.fixture
-def message():
+def message() -> Message:
     """Fixture to create a sample message object."""
     return Message(
         id=1,
@@ -40,7 +40,7 @@ def message():
 
 # Test for get_last_message_id
 @pytest.mark.asyncio
-async def test_get_last_message_id(session):
+async def test_get_last_message_id(session: AsyncSession) -> None:
     """Test for the get_last_message_id method."""
     # Mock the query result
     result = AsyncMock()
@@ -62,7 +62,7 @@ async def test_get_last_message_id(session):
 
 # Test for the case when no last message is found
 @pytest.mark.asyncio
-async def test_get_last_message_id_no_result(session):
+async def test_get_last_message_id_no_result(session: AsyncSession) -> None:
     """Test for the get_last_message_id method when no result is found."""
     # Mock the query result to return None
     result = AsyncMock()
@@ -87,7 +87,7 @@ async def test_get_last_message_id_no_result(session):
 
 # Test for get_published_messages
 @pytest.mark.asyncio
-async def test_get_published_messages(session, message):
+async def test_get_published_messages(session: MagicMock, message: Message) -> None:
     """Test for the get_published_messages method."""
 
     # Create a mock result for scalars().all()
@@ -114,7 +114,7 @@ async def test_get_published_messages(session, message):
 
 # Test for get_unpublished_messages
 @pytest.mark.asyncio
-async def test_get_unpublished_messages(session, message):
+async def test_get_unpublished_messages(session: MagicMock, message: Message) -> None:
     """Test for the get_unpublished_messages method."""
 
     # Create a mock result for scalars().all()
@@ -143,7 +143,7 @@ async def test_get_unpublished_messages(session, message):
 
 # Test for saving a message
 @pytest.mark.asyncio
-async def test_save_message(session, message):
+async def test_save_message(session: MagicMock, message: Message) -> None:
     """Test for the save method."""
     await message.save(session)
 
@@ -153,7 +153,7 @@ async def test_save_message(session, message):
 
 # Test for the case when saving a message raises an exception
 @pytest.mark.asyncio
-async def test_save_message_error(session, message):
+async def test_save_message_error(session: MagicMock, message: Message) -> None:
     """Test save method when an error occurs during commit."""
     session.commit.side_effect = Exception("Database error")
 
@@ -165,7 +165,7 @@ async def test_save_message_error(session, message):
 
 # Test for __repr__ method
 @pytest.mark.asyncio
-async def test_repr(message):
+async def test_repr(message: Message) -> None:
     """Test for the __repr__ method."""
     result = message.__repr__()
 
@@ -175,7 +175,7 @@ async def test_repr(message):
 
 
 @pytest.mark.asyncio
-async def test_get_last_message_id_exception(session):
+async def test_get_last_message_id_exception(session: AsyncSession) -> None:
     """Test get_last_message_id for exception handling."""
 
     session.execute.side_effect = Exception("Database error")
@@ -185,7 +185,7 @@ async def test_get_last_message_id_exception(session):
 
 
 @pytest.mark.asyncio
-async def test_get_published_messages_exception(session):
+async def test_get_published_messages_exception(session: AsyncSession) -> None:
     """Test get_published_messages for exception handling."""
 
     session.execute.side_effect = Exception("Database error")
@@ -195,7 +195,7 @@ async def test_get_published_messages_exception(session):
 
 
 @pytest.mark.asyncio
-async def test_get_unpublished_messages_exception(session):
+async def test_get_unpublished_messages_exception(session: AsyncSession) -> None:
     """Test get_unpublished_messages for exception handling."""
 
     session.execute.side_effect = Exception("Database error")
@@ -206,7 +206,7 @@ async def test_get_unpublished_messages_exception(session):
 
 # Test for get_message
 @pytest.mark.asyncio
-async def test_get_message(session, message):
+async def test_get_message(session: AsyncSession, message: Message) -> None:
     """Test for the get_message method."""
     # Mock the query result
     result = AsyncMock()
@@ -229,7 +229,7 @@ async def test_get_message(session, message):
 
 
 @pytest.mark.asyncio
-async def test_get_message_not_found(session, message):
+async def test_get_message_not_found(session: AsyncSession, message: Message) -> None:
     """Test for the get_message method when no result is found."""
     # Mock the query result
     result = AsyncMock()
@@ -242,7 +242,7 @@ async def test_get_message_not_found(session, message):
 
 
 @pytest.mark.asyncio
-async def test_get_message_exception(session, message):
+async def test_get_message_exception(session: AsyncSession, message: Message) -> None:
     """Test get_message for exception handling."""
     session.execute.side_effect = Exception("Database error")
 
@@ -252,7 +252,7 @@ async def test_get_message_exception(session, message):
 
 # Test for get_first_message_id
 @pytest.mark.asyncio
-async def test_get_first_message_id(session):
+async def test_get_first_message_id(session: AsyncSession) -> None:
     """Test for the get_first_message_id method."""
     # Mock the query result
     result = AsyncMock()
@@ -274,7 +274,7 @@ async def test_get_first_message_id(session):
 
 
 @pytest.mark.asyncio
-async def test_get_first_message_id_no_messages(session):
+async def test_get_first_message_id_no_messages(session: AsyncSession) -> None:
     """Test for get_first_message_id when no messages exist."""
     result = AsyncMock()
     result.scalars = Mock(return_value=Mock(all=Mock(return_value=[])))
@@ -286,7 +286,7 @@ async def test_get_first_message_id_no_messages(session):
 
 
 @pytest.mark.asyncio
-async def test_get_first_message_id_exception(session):
+async def test_get_first_message_id_exception(session: AsyncSession) -> None:
     """Test get_first_message_id for exception handling."""
     session.execute.side_effect = Exception("Database error")
 
@@ -296,7 +296,7 @@ async def test_get_first_message_id_exception(session):
 
 # Test for update
 @pytest.mark.asyncio
-async def test_update_message(session, message):
+async def test_update_message(session: MagicMock, message: Message) -> None:
     """Test for the update method."""
     # Mock get_message to return the message
     Message.get_message = AsyncMock(return_value=message)
@@ -313,7 +313,7 @@ async def test_update_message(session, message):
 
 
 @pytest.mark.asyncio
-async def test_update_message_not_found(session, message):
+async def test_update_message_not_found(session: MagicMock, message: Message) -> None:
     """Test for update method when the message does not exist."""
     Message.get_message = AsyncMock(return_value=None)
 
@@ -325,7 +325,7 @@ async def test_update_message_not_found(session, message):
 
 
 @pytest.mark.asyncio
-async def test_update_message_exception(session, message):
+async def test_update_message_exception(session: AsyncSession, message: Message) -> None:
     """Test update method for exception handling."""
     Message.get_message = AsyncMock(side_effect=Exception("Database error"))
 
@@ -339,7 +339,7 @@ async def test_update_message_exception(session, message):
 
 
 @pytest.mark.asyncio
-async def test_update_message_invalid_field(session, message, caplog):
+async def test_update_message_invalid_field(session: MagicMock, message: Message, caplog) -> None:
     """Test for update method when an invalid field is passed."""
     # Mock get_message to return the message
     Message.get_message = AsyncMock(return_value=message)

@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Optional, List, Union, Sequence
+from typing import Optional, List, Union, Sequence, Any
 
 from sqlalchemy import Column, Integer, String, DateTime, Float, select, desc, asc, literal, PrimaryKeyConstraint
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,21 +17,21 @@ DAYS_IN_LAST_MONTH = 30
 class Message(Base):
     __tablename__ = 'post'
 
-    id = Column(Integer, primary_key=True)
-    channel = Column(String(255), primary_key=True, nullable=False)
-    timestamp = Column(DateTime, nullable=False)
-    text = Column(String, nullable=True)
-    score = Column(Integer, nullable=True)
-    alt = Column(String, nullable=True)
-    score_alt = Column(Integer, nullable=True)
-    improve = Column(String, nullable=True)
-    score_improve = Column(Integer, nullable=True)
-    embedding = Column(String, nullable=True)
-    similarity_score = Column(Float, nullable=True)
-    published = Column(DateTime, nullable=True)
-    views = Column(Integer, nullable=True)
-    reactions = Column(Integer, nullable=True)
-    forwards = Column(Integer, nullable=True)
+    id: int = Column(Integer, primary_key=True)
+    channel: str = Column(String(255), primary_key=True, nullable=False)
+    timestamp: datetime = Column(DateTime, nullable=False)
+    text: Optional[str] = Column(String, nullable=True)
+    score: Optional[int] = Column(Integer, nullable=True)
+    alt: Optional[str] = Column(String, nullable=True)
+    score_alt: Optional[int] = Column(Integer, nullable=True)
+    improve: Optional[str] = Column(String, nullable=True)
+    score_improve: Optional[int] = Column(Integer, nullable=True)
+    embedding: Optional[str] = Column(String, nullable=True)
+    similarity_score: Optional[float] = Column(Float, nullable=True)
+    published: Optional[datetime] = Column(DateTime, nullable=True)
+    views: Optional[int] = Column(Integer, nullable=True)
+    reactions: Optional[int] = Column(Integer, nullable=True)
+    forwards: Optional[int] = Column(Integer, nullable=True)
 
     __table_args__ = (
         PrimaryKeyConstraint('id', 'channel'),
@@ -49,11 +49,11 @@ class Message(Base):
                  score_improve: Optional[int] = None,
                  embedding: Optional[Union[str, List[float]]] = None,
                  similarity_score: Optional[float] = None,
-                 published: datetime = None,
+                 published: Optional[datetime] = None,
                  views: Optional[int] = None,
                  reactions: Optional[int] = None,
                  forwards: Optional[int] = None
-                 ):
+                 ) -> None:
         super().__init__(
             id=id,
             channel=channel,
@@ -72,10 +72,10 @@ class Message(Base):
             forwards=forwards
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<Message(id={self.id}, channel='{self.channel}', timestamp={self.timestamp},"
-            f""f"text='{self.text[:20]}...', score={self.score})>"
+            f"text='{self.text[:20]}...', score={self.score})>"
         )
 
     @staticmethod
@@ -87,7 +87,7 @@ class Message(Base):
                 .order_by(desc(Message.id))
                 .limit(1)
             )
-            id = result.scalar_one_or_none()
+            id: Optional[int] = result.scalar_one_or_none()
             logger.debug(f"Last message ID for channel '{channel}': {id}")
             return id
         except Exception as e:
@@ -103,9 +103,9 @@ class Message(Base):
                 .order_by(asc(Message.id))
                 .limit(limit)
             )
-            ids = result.scalars().all()
+            ids: Sequence[Any] = result.scalars().all()
             if ids:
-                first_id = min(ids)
+                first_id: int = min(ids)
                 logger.debug(f"First message ID for channel '{channel}' with limit {limit}: {first_id}")
                 return first_id
             else:
@@ -117,14 +117,14 @@ class Message(Base):
 
     @staticmethod
     async def get_published_messages(session: AsyncSession) -> Sequence['Message']:
-        last_month = datetime.now() - timedelta(days=DAYS_IN_LAST_MONTH)
+        last_month: datetime = datetime.now() - timedelta(days=DAYS_IN_LAST_MONTH)
         query = select(Message).where(
             Message.timestamp > last_month,
             Message.published.isnot(None)
         )
         try:
             result = await session.execute(query)
-            messages = result.scalars().all()
+            messages: Sequence['Message'] = result.scalars().all()
             logger.debug(f"Retrieved {len(messages)} messages from last month")
             return messages
         except Exception as e:
@@ -139,11 +139,11 @@ class Message(Base):
         )
         try:
             result = await session.execute(query)
-            messages = result.scalars().all()
-            logger.debug(f"Retrieved {len(messages)} messages from last month")
+            messages: Sequence['Message'] = result.scalars().all()
+            logger.debug(f"Retrieved {len(messages)} unpublished messages")
             return messages
         except Exception as e:
-            logger.error(f"Error getting messages from last month: {e}")
+            logger.error(f"Error getting unpublished messages: {e}")
             raise
 
     @staticmethod
@@ -154,7 +154,7 @@ class Message(Base):
         )
         try:
             result = await session.execute(query)
-            message = result.scalar_one_or_none()
+            message: Optional['Message'] = result.scalar_one_or_none()
             if message:
                 logger.debug(f"Retrieved message with id={id} and channel='{channel}': {message}")
             else:
@@ -170,12 +170,12 @@ class Message(Base):
             await session.commit()
             logger.debug(f"Message {self.id} channel {self.channel} saved successfully.")
         except Exception as e:
-            logger.error(f"Error saving message {self.id} channel channel {self.channel}: {e}")
+            logger.error(f"Error saving message {self.id} channel {self.channel}: {e}")
             await session.rollback()
 
-    async def update(self, session: AsyncSession, **kwargs) -> None:
+    async def update(self, session: AsyncSession, **kwargs: Union[str, int, float, None]) -> None:
         try:
-            message = await self.get_message(session, self.id, self.channel)
+            message: Optional['Message'] = await self.get_message(session, self.id, self.channel)
             if not message:
                 logger.debug(f"Message with id={self.id} and channel={self.channel} not found. Update skipped.")
                 return

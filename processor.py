@@ -22,7 +22,7 @@ class Processor:
             db: IAsyncDatabase,
             embedding_service: IEmbeddingService,
             config: ProcessorSettings
-    ):
+    ) -> None:
         self.telegram_service = telegram_service
         self.openai_service = openai_service
         self.db = db
@@ -41,24 +41,24 @@ class Processor:
             self,
             exc_type: Optional[Type[BaseException]],
             exc_val: Optional[BaseException],
-            exc_tb: Optional[Type[BaseException]],
+            exc_tb: Optional[Type[BaseException]]
     ) -> None:
         await asyncio.gather(
             self.openai_service.__aexit__(exc_type, exc_val, exc_tb),
             self.db.__aexit__(exc_type, exc_val, exc_tb)
         )
 
-    async def fetch_and_process(self):
+    async def fetch_and_process(self) -> None:
         session_maker = await self.db.session()
         async with session_maker() as session:
-            self.published_messages: Sequence[Message] = await Message.get_published_messages(session)
+            self.published_messages = await Message.get_published_messages(session)
             for channel in self.telegram_service.channels:
                 min_id = await Message.get_last_message_id(session, channel)
                 self.channel_min_id[channel] = min_id
                 messages = await self.telegram_service.fetch_messages(channel, min_id)
                 await self.process(messages)
 
-    async def fetch_and_update_metrics(self):
+    async def fetch_and_update_metrics(self) -> None:
         session_maker = await self.db.session()
         async with session_maker() as session:
             for channel in self.telegram_service.channels:
@@ -83,11 +83,12 @@ class Processor:
                     await message.update(session, views=message.views, reactions=message.reactions,
                                          forwards=message.forwards)
 
-    async def _check_stop_words(self, text: str) -> str:
+    async def _check_stop_words(self, text: str) -> Optional[str]:
         for word in self.config.stop_words_list:
             if re.search(word, text):
                 logger.debug(f"Stop word '{word}' found in '{text}'")
                 return word
+        return None
 
     async def _process_message(self, message: Message, last_message: bool = False) -> bool:
         if not message.text:
@@ -154,11 +155,11 @@ class Processor:
 
         return True
 
-    async def update_similarity(self):
+    async def update_similarity(self) -> None:
         session_maker = await self.db.session()
         async with session_maker() as session:
-            published_messages: Sequence[Message] = await Message.get_published_messages(session)
-            unpublished_messages: Sequence[Message] = await Message.get_unpublished_messages(session)
+            published_messages = await Message.get_published_messages(session)
+            unpublished_messages = await Message.get_unpublished_messages(session)
 
             if not published_messages:
                 logger.warning("No published messages found.")

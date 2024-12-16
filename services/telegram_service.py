@@ -2,6 +2,7 @@ import logging
 from typing import List, Optional
 
 from telethon import TelegramClient
+from telethon.tl.custom.message import Message as TelethonMessage
 
 from models.message import Message
 from services.interfaces import ITelegramService
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class TelegramService(ITelegramService):
-    def __init__(self, client: TelegramClient, channels: List[str], messages_limit: int = 10):
+    def __init__(self, client: TelegramClient, channels: List[str], messages_limit: int = 10) -> None:
         self.client: TelegramClient = client
         self.channels: List[str] = channels
         self.messages_limit: int = messages_limit
@@ -38,7 +39,7 @@ class TelegramService(ITelegramService):
         return await self.client.get_messages(channel, limit=self.messages_limit)
 
     @staticmethod
-    def _get_reactions(message) -> int:
+    def _get_reactions(message: TelethonMessage) -> int:
         if not message.reactions:
             return 0
 

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List
 from unittest.mock import Mock, AsyncMock
 
 import pytest
@@ -8,20 +9,20 @@ from services.telegram_service import TelegramService
 
 
 @pytest.fixture
-def client():
+def client() -> Mock:
     client = Mock()
     client.get_messages = AsyncMock()
     return client
 
 
 @pytest.fixture
-def telegram_service(client):
+def telegram_service(client: Mock) -> TelegramService:
     channels = ["test_channel"]
     return TelegramService(client=client, channels=channels)
 
 
 @pytest.fixture
-def messages():
+def messages() -> List[Mock]:
     message = Mock()
     message.id = 123
     message.text = "Test message"
@@ -33,7 +34,7 @@ def messages():
 
 
 @pytest.mark.asyncio
-async def test_fetch_messages_with_last_message_id(telegram_service, client, messages):
+async def test_fetch_messages_with_last_message_id(telegram_service: TelegramService, client: Mock, messages: List[Mock]) -> None:
     # Arrange
     client.get_messages.return_value = messages
 
@@ -51,7 +52,7 @@ async def test_fetch_messages_with_last_message_id(telegram_service, client, mes
 
 
 @pytest.mark.asyncio
-async def test_fetch_messages_without_last_message_id(telegram_service, client, messages):
+async def test_fetch_messages_without_last_message_id(telegram_service: TelegramService, client: Mock, messages: List[Mock]) -> None:
     # Arrange
     client.get_messages.return_value = messages
 
@@ -64,7 +65,7 @@ async def test_fetch_messages_without_last_message_id(telegram_service, client, 
 
 
 @pytest.mark.asyncio
-async def test_fetch_messages_empty_response(telegram_service, client):
+async def test_fetch_messages_empty_response(telegram_service: TelegramService, client: Mock) -> None:
     # Arrange
     client.get_messages.return_value = []
 
@@ -76,7 +77,7 @@ async def test_fetch_messages_empty_response(telegram_service, client):
 
 
 @pytest.mark.asyncio
-async def test_fetch_messages_handles_exception(telegram_service, client):
+async def test_fetch_messages_handles_exception(telegram_service: TelegramService, client: Mock) -> None:
     # Arrange
     client.get_messages.side_effect = Exception("Test error")
 
@@ -88,7 +89,7 @@ async def test_fetch_messages_handles_exception(telegram_service, client):
 
 
 @pytest.mark.asyncio
-async def test_create_message_objects(messages):
+async def test_create_message_objects(messages: List[Mock]) -> None:
     # Act
     result = TelegramService._create_message_objects(messages, "test_channel")
 
@@ -102,7 +103,7 @@ async def test_create_message_objects(messages):
 
 
 @pytest.mark.asyncio
-async def test_get_reactions(messages):
+async def test_get_reactions(messages: List[Mock]) -> None:
     # Act
     reactions_count = TelegramService._get_reactions(messages[0])
 
@@ -111,7 +112,7 @@ async def test_get_reactions(messages):
 
 
 @pytest.mark.asyncio
-async def test_get_reactions_no_reactions():
+async def test_get_reactions_no_reactions() -> None:
     # Arrange
     message = Mock()
     message.reactions = None
@@ -124,7 +125,7 @@ async def test_get_reactions_no_reactions():
 
 
 @pytest.mark.asyncio
-async def test_get_messages_with_max_id(client, telegram_service):
+async def test_get_messages_with_max_id(client: Mock, telegram_service: TelegramService) -> None:
     # Arrange
     max_id = 200
     client.get_messages.return_value = []
@@ -137,7 +138,7 @@ async def test_get_messages_with_max_id(client, telegram_service):
 
 
 @pytest.mark.asyncio
-async def test_get_messages_without_min_id_and_max_id(client, telegram_service):
+async def test_get_messages_without_min_id_and_max_id(client: Mock, telegram_service: TelegramService) -> None:
     # Act
     await telegram_service._get_messages("test_channel")
 

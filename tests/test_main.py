@@ -8,7 +8,7 @@ from main import main
 
 
 @pytest.fixture
-def telegram_client_mock():
+def telegram_client_mock() -> AsyncMock:
     """Mock for Telegram client."""
     client = AsyncMock()
     client.start = AsyncMock()
@@ -16,7 +16,7 @@ def telegram_client_mock():
 
 
 @pytest.fixture
-def processor_mock():
+def processor_mock() -> AsyncMock:
     """Mock for Processor."""
     processor = AsyncMock()
     processor.fetch_and_process = AsyncMock()
@@ -25,7 +25,7 @@ def processor_mock():
 
 
 @pytest.fixture
-def container(telegram_client_mock, processor_mock):
+def container(telegram_client_mock: AsyncMock, processor_mock: AsyncMock) -> MagicMock:
     """Mock for Container."""
     container = MagicMock()
     container.get_telegram_client.return_value.__aenter__.return_value = telegram_client_mock
@@ -38,7 +38,7 @@ def container(telegram_client_mock, processor_mock):
 @patch("main.Container", autospec=True)
 @patch("main.logging.getLogger", autospec=True)
 @pytest.mark.asyncio
-async def test_main_success(logger, container_class, container):
+async def test_main_success(logger: MagicMock, container_class: MagicMock, container: MagicMock) -> None:
     """Test main function with successful execution."""
     container_class.return_value = container
 
@@ -55,7 +55,7 @@ async def test_main_success(logger, container_class, container):
 
 
 @pytest.mark.asyncio
-async def test_main_telegram_client_exception():
+async def test_main_telegram_client_exception() -> None:
     container = MagicMock()
     client = AsyncMock()
 
@@ -74,7 +74,7 @@ async def test_main_telegram_client_exception():
 
 
 @pytest.mark.asyncio
-async def test_main_processor_exception():
+async def test_main_processor_exception() -> None:
     container = MagicMock()
     client = AsyncMock()
     processor = AsyncMock()
@@ -96,7 +96,7 @@ async def test_main_processor_exception():
 
 @patch("main.logging.getLogger")
 @pytest.mark.asyncio
-async def test_main_invalid_log_level(get_logger_mock):
+async def test_main_invalid_log_level(get_logger_mock: MagicMock) -> None:
     """Test main function with an invalid log level."""
     # Mock the logger
     main_logger = MagicMock()

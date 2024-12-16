@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     @staticmethod
     def load_prompt(file_name: str) -> str:
         try:
-            file_path = Path(file_name)
+            file_path: Path = Path(file_name)
             if not file_path.is_file():
                 raise FileNotFoundError(f"File '{file_name}' not found.")
 

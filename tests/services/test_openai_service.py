@@ -9,13 +9,13 @@ from settings import Settings
 
 
 @pytest.fixture
-def config():
+def config() -> Settings:
     settings = Settings()
     return settings.openai
 
 
 @pytest.fixture
-def openai_service(config):
+def openai_service(config: Settings) -> OpenAIService:
     service = OpenAIService(
         config=config,
         prompt_process="Process: {text}",
@@ -26,14 +26,14 @@ def openai_service(config):
 
 
 @pytest.mark.asyncio
-async def test_context_manager(openai_service):
+async def test_context_manager(openai_service: OpenAIService) -> None:
     async with openai_service as service:
         assert service.session is not None
     assert service.session.closed
 
 
 @pytest.mark.asyncio
-async def test_make_request_success(openai_service):
+async def test_make_request_success(openai_service: OpenAIService) -> None:
     response = Mock(spec=ChatCompletion)
     message = Mock(spec=ChatCompletionMessage)
     message.content = "Test response"
@@ -47,53 +47,53 @@ async def test_make_request_success(openai_service):
 
 
 @pytest.mark.asyncio
-async def test_make_request_failure(openai_service):
+async def test_make_request_failure(openai_service: OpenAIService) -> None:
     with patch.object(openai_service.client.chat.completions, 'create', side_effect=Exception("API Error")):
         response = await openai_service.make_request("Test prompt")
         assert response is None
 
 
 @pytest.mark.asyncio
-async def test_get_evaluation_valid_response(openai_service):
+async def test_get_evaluation_valid_response(openai_service: OpenAIService) -> None:
     with patch.object(openai_service, 'make_request', return_value="0.85"):
         result = await openai_service.get_evaluation("Test text")
         assert result == 0.85
 
 
 @pytest.mark.asyncio
-async def test_get_evaluation_invalid_response(openai_service):
+async def test_get_evaluation_invalid_response(openai_service: OpenAIService) -> None:
     with patch.object(openai_service, 'make_request', return_value="invalid"):
         result = await openai_service.get_evaluation("Test text")
         assert result is None
 
 
 @pytest.mark.asyncio
-async def test_get_evaluation_empty_text(openai_service):
+async def test_get_evaluation_empty_text(openai_service: OpenAIService) -> None:
     result = await openai_service.get_evaluation("")
     assert result is None
 
 
 @pytest.mark.asyncio
-async def test_get_alt_success(openai_service):
+async def test_get_alt_success(openai_service: OpenAIService) -> None:
     with patch.object(openai_service, 'make_request', return_value="Processed text"):
         result = await openai_service.get_alt("Test text")
         assert result == "Processed text"
 
 
 @pytest.mark.asyncio
-async def test_get_alt_empty_text(openai_service):
+async def test_get_alt_empty_text(openai_service: OpenAIService) -> None:
     result = await openai_service.get_alt("")
     assert result is None
 
 
 @pytest.mark.asyncio
-async def test_get_improve_success(openai_service):
+async def test_get_improve_success(openai_service: OpenAIService) -> None:
     with patch.object(openai_service, 'make_request', return_value="Processed text"):
         result = await openai_service.get_improve("Test text")
         assert result == "Processed text"
 
 
 @pytest.mark.asyncio
-async def test_get_improve_empty_text(openai_service):
+async def test_get_improve_empty_text(openai_service: OpenAIService) -> None:
     result = await openai_service.get_improve("")
     assert result is None

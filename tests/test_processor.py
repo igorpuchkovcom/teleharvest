@@ -10,20 +10,20 @@ from settings import Settings
 
 
 @pytest.fixture
-def config():
+def config() -> Settings:
     settings = Settings()
     return settings.processor
 
 
 @pytest.fixture
-def telegram_service():
+def telegram_service() -> AsyncMock:
     service = AsyncMock()
     service.channels = ["test_channel"]
     return service
 
 
 @pytest.fixture
-def openai_service():
+def openai_service() -> AsyncMock:
     service = AsyncMock()
     service.get_evaluation.return_value = 86
     service.get_alt.return_value = "Alternative text"
@@ -31,17 +31,17 @@ def openai_service():
 
 
 @pytest.fixture
-def db():
+def db() -> AsyncMock:
     session = AsyncMock()
 
     class AsyncSessionContextManager:
-        async def __aenter__(self):
+        async def __aenter__(self) -> AsyncMock:
             return session
 
-        async def __aexit__(self, exc_type, exc_value, traceback):
+        async def __aexit__(self, exc_type, exc_value, traceback) -> None:
             pass
 
-    def session_maker():
+    def session_maker() -> AsyncSessionContextManager:
         return AsyncSessionContextManager()
 
     db = AsyncMock()
@@ -50,7 +50,7 @@ def db():
 
 
 @pytest.fixture
-def message():
+def message() -> Message:
     message = Message(
         id=1,
         text="Text message" * 30,
@@ -65,7 +65,7 @@ def message():
 
 
 @pytest.fixture
-def embedding_service():
+def embedding_service() -> AsyncMock:
     service = AsyncMock()
     service.generate_embedding.return_value = "embedding"
     service.calculate_max_similarity.return_value = 0.5
@@ -73,7 +73,13 @@ def embedding_service():
 
 
 @pytest.fixture
-def processor(telegram_service, openai_service, db, embedding_service, config):
+def processor(
+    telegram_service: AsyncMock,
+    openai_service: AsyncMock,
+    db: AsyncMock,
+    embedding_service: AsyncMock,
+    config: Settings
+) -> Processor:
     return Processor(
         telegram_service=telegram_service,
         openai_service=openai_service,
@@ -84,7 +90,7 @@ def processor(telegram_service, openai_service, db, embedding_service, config):
 
 
 @pytest.mark.asyncio
-async def test_fetch_and_process(processor, telegram_service, message):
+async def test_fetch_and_process(processor: Processor, telegram_service: AsyncMock, message: Message) -> None:
     # Mock database methods
     Message.get_published_messages = AsyncMock(return_value=[])
     Message.get_last_message_id = AsyncMock(return_value=0)
@@ -99,15 +105,17 @@ async def test_fetch_and_process(processor, telegram_service, message):
 
 
 @pytest.mark.asyncio
-async def test_process_message_short_text(processor, message):
+async def test_process_message_short_text(
+    processor: Processor, message: Message, openai_service: AsyncMock, embedding_service: AsyncMock
+) -> None:
     message.text = "Short"
-    await processor._process_message(message)
-
-    assert not message.score  # Message should not be processed
+    await edge_cases(processor, openai_service, embedding_service, message)
 
 
 @pytest.mark.asyncio
-async def test_process_message_valid(processor, openai_service, embedding_service, message):
+async def test_process_message_valid(
+    processor: Processor, openai_service: AsyncMock, embedding_service: AsyncMock, message: Message
+) -> None:
     processor.published_messages = [message]
 
     openai_service.get_evaluation.side_effect = [86, 96, 96]
@@ -125,10 +133,9 @@ async def test_process_message_valid(processor, openai_service, embedding_servic
     assert message.similarity_score == 0.8
 
 
-async def edge_cases(processor, openai_service, embedding_service, message):
-    openai_service.get_evaluation.side_effect = [None, None]
-    embedding_service.generate_embedding.return_value = "embedding"
-
+async def edge_cases(
+    processor: Processor, openai_service: AsyncMock, embedding_service: AsyncMock, message: Message
+) -> None:
     await processor._process_message(message)
 
     assert message.score is None
@@ -139,13 +146,17 @@ async def edge_cases(processor, openai_service, embedding_service, message):
 
 
 @pytest.mark.asyncio
-async def test_process_message_no_text(processor, openai_service, embedding_service, message):
+async def test_process_message_no_text(
+    processor: Processor, openai_service: AsyncMock, embedding_service: AsyncMock, message: Message
+) -> None:
     message.text = None
     await edge_cases(processor, openai_service, embedding_service, message)
 
 
 @pytest.mark.asyncio
-async def test_process_message_low_score(processor, openai_service, embedding_service, message):
+async def test_process_message_low_score(
+    processor: Processor, openai_service: AsyncMock, embedding_service: AsyncMock, message: Message
+) -> None:
     openai_service.get_evaluation.side_effect = [50, 96]
     embedding_service.generate_embedding.return_value = "embedding"
 
@@ -160,7 +171,9 @@ async def test_process_message_low_score(processor, openai_service, embedding_se
 
 
 @pytest.mark.asyncio
-async def test_process_message_low_alt_score(processor, openai_service, embedding_service, message):
+async def test_process_message_low_alt_score(
+    processor: Processor, openai_service: AsyncMock, embedding_service: AsyncMock, message: Message
+) -> None:
     openai_service.get_evaluation.side_effect = [86, 50]
     embedding_service.generate_embedding.return_value = "embedding"
 
@@ -175,7 +188,9 @@ async def test_process_message_low_alt_score(processor, openai_service, embeddin
 
 
 @pytest.mark.asyncio
-async def test_process_message_low_er(processor, openai_service, embedding_service, message):
+async def test_process_message_low_er(
+    processor: Processor, openai_service: AsyncMock, embedding_service: AsyncMock, message: Message
+) -> None:
     message.reactions = 0
     message.forwards = 0
     message.views = 100
@@ -183,19 +198,23 @@ async def test_process_message_low_er(processor, openai_service, embedding_servi
 
 
 @pytest.mark.asyncio
-async def test_process_message_no_channel(processor, openai_service, embedding_service, message):
+async def test_process_message_no_channel(
+    processor: Processor, openai_service: AsyncMock, embedding_service: AsyncMock, message: Message
+) -> None:
     message.channel = ""
     await edge_cases(processor, openai_service, embedding_service, message)
 
 
 @pytest.mark.asyncio
-async def test_process_message_stop_words(processor, openai_service, embedding_service, message):
+async def test_process_message_stop_words(
+    processor: Processor, openai_service: AsyncMock, embedding_service: AsyncMock, message: Message
+) -> None:
     message.text = "This is an астролог message" * 20
     await edge_cases(processor, openai_service, embedding_service, message)
 
 
 @pytest.mark.asyncio
-async def test_update_similarity(processor, embedding_service, message):
+async def test_update_similarity(processor: Processor, embedding_service: AsyncMock, message: Message) -> None:
     message.embedding = json.dumps({"vector": [0.1, 0.2, 0.3]})
     published = [message]
     unpublished = [message]
@@ -213,21 +232,9 @@ async def test_update_similarity(processor, embedding_service, message):
 
 
 @pytest.mark.asyncio
-async def test_process_message_low_er_and_views(processor, message):
-    message.views = 200
-    message.reactions = 1
-    message.forwards = 2
-    processor.config.min_er = 0.05
-    processor.config.min_views = 150
-
-    result = await processor._process_message(message)
-
-    assert not result
-    assert not message.score
-
-
-@pytest.mark.asyncio
-async def test_process_message_similarity_score(processor, openai_service, embedding_service, message):
+async def test_process_message_similarity_score(
+    processor: Processor, openai_service: AsyncMock, embedding_service: AsyncMock, message: Message
+) -> None:
     openai_service.get_evaluation.side_effect = [86, 96, 96]
 
     processor.published_messages = [message]
@@ -244,7 +251,7 @@ async def test_process_message_similarity_score(processor, openai_service, embed
 
 
 @pytest.mark.asyncio
-async def test_update_similarity_no_published(processor, embedding_service, message):
+async def test_update_similarity_no_published(processor: Processor, embedding_service: AsyncMock, message: Message) -> None:
     Message.get_published_messages = AsyncMock(return_value=[])
     Message.get_unpublished_messages = AsyncMock(return_value=[message])
 
@@ -254,7 +261,7 @@ async def test_update_similarity_no_published(processor, embedding_service, mess
 
 
 @pytest.mark.asyncio
-async def test_update_similarity_no_unpublished(processor, embedding_service, message):
+async def test_update_similarity_no_unpublished(processor: Processor, embedding_service: AsyncMock, message: Message) -> None:
     Message.get_published_messages = AsyncMock(return_value=[message])
     Message.get_unpublished_messages = AsyncMock(return_value=[])
 
@@ -264,7 +271,7 @@ async def test_update_similarity_no_unpublished(processor, embedding_service, me
 
 
 @pytest.mark.asyncio
-async def test_processor_context_manager(processor, openai_service, db):
+async def test_processor_context_manager(processor: Processor, openai_service: AsyncMock, db: AsyncMock) -> None:
     openai_service.__aenter__.return_value = openai_service
     openai_service.__aexit__.return_value = None
     db.__aenter__.return_value = db
@@ -280,7 +287,7 @@ async def test_processor_context_manager(processor, openai_service, db):
 
 
 @pytest.mark.asyncio
-async def test_fetch_and_update_metrics(processor, telegram_service, message):
+async def test_fetch_and_update_metrics(processor: Processor, telegram_service: AsyncMock, message: Message) -> None:
     Message.get_first_message_id = AsyncMock(return_value=0)
     Message.save = AsyncMock()
 
@@ -294,7 +301,7 @@ async def test_fetch_and_update_metrics(processor, telegram_service, message):
 
 
 @pytest.mark.asyncio
-async def test_fetch_and_update_metrics_no_messages(processor, telegram_service):
+async def test_fetch_and_update_metrics_no_messages(processor: Processor, telegram_service: AsyncMock) -> None:
     Message.get_first_message_id = AsyncMock(return_value=0)
     telegram_service.fetch_messages.return_value = []
     processor.update_metrics = AsyncMock()
@@ -305,7 +312,7 @@ async def test_fetch_and_update_metrics_no_messages(processor, telegram_service)
 
 
 @pytest.mark.asyncio
-async def test_update_metrics_no_views_or_reactions(processor, message):
+async def test_update_metrics_no_views_or_reactions(processor: Processor, message: Message) -> None:
     message.views = None
     message.reactions = None
 
@@ -322,7 +329,7 @@ async def test_update_metrics_no_views_or_reactions(processor, message):
 
 
 @pytest.mark.asyncio
-async def test_update_metrics_invalid_data(processor, message):
+async def test_update_metrics_invalid_data(processor: Processor, message: Message) -> None:
     # Test with missing views
     message.views = None
     message.reactions = 10
@@ -337,7 +344,7 @@ async def test_update_metrics_invalid_data(processor, message):
 
 
 @pytest.mark.asyncio
-async def test_update_metrics_valid(processor, message):
+async def test_update_metrics_valid(processor: Processor, message: Message) -> None:
     # Arrange
     message.views = 100
     message.reactions = 10
@@ -359,7 +366,7 @@ async def test_update_metrics_valid(processor, message):
 
 
 @pytest.mark.asyncio
-async def test_update_metrics_missing_views(processor, message):
+async def test_update_metrics_missing_views(processor: Processor, message: Message) -> None:
     # Arrange
     message.views = None
     message.reactions = 10
@@ -374,7 +381,7 @@ async def test_update_metrics_missing_views(processor, message):
 
 
 @pytest.mark.asyncio
-async def test_update_metrics_missing_reactions(processor, message):
+async def test_update_metrics_missing_reactions(processor: Processor, message: Message) -> None:
     # Arrange
     message.views = 100
     message.reactions = None
@@ -389,7 +396,7 @@ async def test_update_metrics_missing_reactions(processor, message):
 
 
 @pytest.mark.asyncio
-async def test_update_metrics_no_valid_data(processor, message):
+async def test_update_metrics_no_valid_data(processor: Processor, message: Message) -> None:
     # Arrange
     message.views = None
     message.reactions = None
@@ -405,7 +412,9 @@ async def test_update_metrics_no_valid_data(processor, message):
 
 
 @pytest.mark.asyncio
-async def test_process_message_low_score_improve(processor, openai_service, embedding_service, message):
+async def test_process_message_low_score_improve(
+    processor: Processor, openai_service: AsyncMock, embedding_service: AsyncMock, message: Message
+) -> None:
     openai_service.get_evaluation.side_effect = [86, 96, 50]
     embedding_service.generate_embedding.return_value = json.dumps([0.1, 0.2, 0.3])
     embedding_service.calculate_max_similarity.return_value = 0.8

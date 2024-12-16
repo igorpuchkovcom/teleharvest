@@ -12,17 +12,17 @@ logger = logging.getLogger(__name__)
 
 class OpenAIService(IOpenAIService):
 
-    def __init__(self, config: OpenAISettings, prompt_process: str, prompt_evaluate: str, prompt_improve: str):
-        self.api_key = config.api_key
-        self.model = config.model
-        self.max_tokens = config.max_tokens
-        self.prompt_process = prompt_process
-        self.prompt_evaluate = prompt_evaluate
-        self.prompt_improve = prompt_improve
-        self.client = OpenAI(api_key=self.api_key)
+    def __init__(self, config: OpenAISettings, prompt_process: str, prompt_evaluate: str, prompt_improve: str) -> None:
+        self.api_key: str = config.api_key
+        self.model: str = config.model
+        self.max_tokens: int = config.max_tokens
+        self.prompt_process: str = prompt_process
+        self.prompt_evaluate: str = prompt_evaluate
+        self.prompt_improve: str = prompt_improve
+        self.client: OpenAI = OpenAI(api_key=self.api_key)
 
-    async def __aenter__(self) -> 'OpenAIService':
-        self.session = aiohttp.ClientSession()
+    async def __aenter__(self) -> "OpenAIService":
+        self.session: aiohttp.ClientSession = aiohttp.ClientSession()
         return self
 
     async def __aexit__(

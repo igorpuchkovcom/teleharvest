@@ -1,3 +1,5 @@
+from typing import Any, Callable
+
 from telethon import TelegramClient
 
 from models.async_database import AsyncDatabase
@@ -12,9 +14,9 @@ from settings import Settings
 class Container:
     def __init__(self, settings: Settings):
         self.settings: Settings = settings
-        self._services = {}
+        self._services: dict[str, Any] = {}
 
-    def _get_service(self, service_name: str, constructor: callable, *args, **kwargs):
+    def _get_service(self, service_name: str, constructor: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         if service_name not in self._services:
             self._services[service_name] = constructor(*args, **kwargs)
         return self._services[service_name]

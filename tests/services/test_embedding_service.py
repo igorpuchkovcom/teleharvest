@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from typing import List
 from unittest.mock import patch
 
 import pytest
@@ -9,31 +10,30 @@ from services.embedding_service import EmbeddingService
 
 
 @pytest.fixture
-def embedding_service():
+def embedding_service() -> EmbeddingService:
     return EmbeddingService()
 
 
 @pytest.fixture
-def messages():
-    message1 = Message(
-        id=1,
-        channel="test_channel",
-        timestamp=datetime.now(),
-        embedding=json.dumps([0.1, 0.2, 0.3])
-    )
-
-    message2 = Message(
-        id=2,
-        channel="test_channel",
-        timestamp=datetime.now(),
-        embedding=json.dumps([0.4, 0.5, 0.6])
-    )
-
-    return [message1, message2]
+def messages() -> List[Message]:
+    return [
+        Message(
+            id=1,
+            channel="test_channel",
+            timestamp=datetime.now(),
+            embedding=json.dumps([0.1, 0.2, 0.3])
+        ),
+        Message(
+            id=2,
+            channel="test_channel",
+            timestamp=datetime.now(),
+            embedding=json.dumps([0.4, 0.5, 0.6])
+        )
+    ]
 
 
 @pytest.mark.asyncio
-async def test_generate_embedding_with_valid_text(embedding_service):
+async def test_generate_embedding_with_valid_text(embedding_service: EmbeddingService) -> None:
     text = "Sample text for embedding"
 
     result = await embedding_service.generate_embedding(text)
@@ -46,7 +46,7 @@ async def test_generate_embedding_with_valid_text(embedding_service):
 
 
 @pytest.mark.asyncio
-async def test_generate_embedding_with_empty_text(embedding_service):
+async def test_generate_embedding_with_empty_text(embedding_service: EmbeddingService) -> None:
     text = ""
 
     result = await embedding_service.generate_embedding(text)
@@ -55,7 +55,7 @@ async def test_generate_embedding_with_empty_text(embedding_service):
 
 
 @pytest.mark.asyncio
-async def test_calculate_max_similarity_with_messages(embedding_service, messages):
+async def test_calculate_max_similarity_with_messages(embedding_service: EmbeddingService, messages: List[Message]) -> None:
     test_embedding = [0.1, 0.2, 0.3]
 
     result = await embedding_service.calculate_max_similarity(test_embedding, messages)
@@ -66,7 +66,7 @@ async def test_calculate_max_similarity_with_messages(embedding_service, message
 
 
 @pytest.mark.asyncio
-async def test_calculate_max_similarity_with_empty_messages(embedding_service):
+async def test_calculate_max_similarity_with_empty_messages(embedding_service: EmbeddingService) -> None:
     test_embedding = [0.2, 0.3, 0.4]
     result = await embedding_service.calculate_max_similarity(test_embedding, [])
 
@@ -74,7 +74,7 @@ async def test_calculate_max_similarity_with_empty_messages(embedding_service):
 
 
 @pytest.mark.asyncio
-async def test_generate_embedding_handles_value_error(embedding_service):
+async def test_generate_embedding_handles_value_error(embedding_service: EmbeddingService) -> None:
     with patch.object(embedding_service.model, 'encode') as encode:
         encode.side_effect = ValueError("Test error")
 
@@ -84,7 +84,7 @@ async def test_generate_embedding_handles_value_error(embedding_service):
 
 
 @pytest.mark.asyncio
-async def test_generate_embedding_handles_general_exception(embedding_service):
+async def test_generate_embedding_handles_general_exception(embedding_service: EmbeddingService) -> None:
     with patch.object(embedding_service.model, 'encode') as encode:
         encode.side_effect = Exception("Unexpected error")
 

@@ -9,7 +9,7 @@ async def main() -> None:
     settings: Settings = Settings()
 
     logging.basicConfig(level=settings.log_level)
-    logger = logging.getLogger(__name__)
+    logger: logging.Logger = logging.getLogger(__name__)
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
     container: Container = Container(settings)

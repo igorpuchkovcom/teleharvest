@@ -3,6 +3,7 @@ import logging
 from typing import List, Optional
 
 from sentence_transformers import SentenceTransformer
+from torch import Tensor
 
 from models.message import Message
 from services.interfaces import IEmbeddingService
@@ -11,32 +12,34 @@ logger = logging.getLogger(__name__)
 
 
 class EmbeddingService(IEmbeddingService):
-    def __init__(self, model_name: str = 'paraphrase-MiniLM-L6-v2'):
-        self.model = SentenceTransformer(model_name)
+    def __init__(self, model_name: str = 'paraphrase-MiniLM-L6-v2') -> None:
+        self.model: SentenceTransformer = SentenceTransformer(model_name)
 
     async def generate_embedding(self, text: str) -> Optional[str]:
         if not text:
             logger.warning("Received empty text for embedding generation.")
-            return
+            return None
 
         try:
-            embedding = self.model.encode(text)
+            embedding: Tensor = self.model.encode(text)
             logger.debug(f"Generated embedding for text: {text[:30]}...")
             return json.dumps(embedding.tolist())
         except (ValueError, TypeError) as e:
             logger.error(f"Value error while generating embedding: {e}")
+            return None
         except Exception as e:
             logger.error(f"Error occurred while generating embedding: {e}")
+            return None
 
-    async def calculate_max_similarity(self, embedding: List[float], messages: List['Message']) -> float:
+    async def calculate_max_similarity(self, embedding: List[float], messages: List[Message]) -> float:
         if not messages:
             logger.warning("No messages provided for similarity calculation.")
             return 0.0
 
-        max_similarity = 0.0
+        max_similarity: float = 0.0
         for message in messages:
             if message.embedding:
-                similarity = float(self.model.similarity(embedding, json.loads(message.embedding)))
+                similarity: float = float(self.model.similarity(embedding, json.loads(message.embedding)))
                 max_similarity = max(max_similarity, similarity)
             logger.debug(f"Maximum similarity calculated: {max_similarity}")
         return max_similarity
