@@ -19,8 +19,7 @@ def openai_service(config: Settings) -> OpenAIService:
     service = OpenAIService(
         config=config,
         prompt_process="Process: {text}",
-        prompt_evaluate="Evaluate: {text}",
-        prompt_improve="Improve: {text}"
+        prompt_evaluate="Evaluate: {text}"
     )
     return service
 
@@ -83,17 +82,4 @@ async def test_get_alt_success(openai_service: OpenAIService) -> None:
 @pytest.mark.asyncio
 async def test_get_alt_empty_text(openai_service: OpenAIService) -> None:
     result = await openai_service.get_alt("")
-    assert result is None
-
-
-@pytest.mark.asyncio
-async def test_get_improve_success(openai_service: OpenAIService) -> None:
-    with patch.object(openai_service, 'make_request', return_value="Processed text"):
-        result = await openai_service.get_improve("Test text")
-        assert result == "Processed text"
-
-
-@pytest.mark.asyncio
-async def test_get_improve_empty_text(openai_service: OpenAIService) -> None:
-    result = await openai_service.get_improve("")
     assert result is None

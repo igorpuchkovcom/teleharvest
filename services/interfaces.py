@@ -25,7 +25,6 @@ class IOpenAIService(ABC):
     max_tokens: int
     prompt_process: str
     prompt_evaluate: str
-    prompt_improve: str
     session: Optional[aiohttp.ClientSession]
 
     @abstractmethod
@@ -42,10 +41,6 @@ class IOpenAIService(ABC):
 
     @abstractmethod
     async def get_alt(self, text: str) -> Optional[str]:
-        raise NotImplementedError
-
-    @abstractmethod
-    async def get_improve(self, text: str) -> Optional[str]:
         raise NotImplementedError
 
 

@@ -134,13 +134,6 @@ class Processor:
                 json.loads(message.embedding), self.published_messages
             )
 
-        logger.debug(f"Improoving message ID {message.id}, channel: {message.channel}, text: {message.text[:50]}...")
-        message.improve = await self.openai_service.get_improve(message.alt)
-        message.score_improve = await self.openai_service.get_evaluation(message.improve)
-        if message.score_improve is None or message.score_improve <= self.config.min_score_improve:
-            logger.debug(f"Skipping message ID {message.id} with score_improve {message.score_improve}")
-            return False
-
         return True
 
     @staticmethod

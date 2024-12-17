@@ -26,7 +26,6 @@ def test_settings_initialization() -> None:
     assert settings.processor.min_er == 0.025
     assert settings.processor.min_score == 80
     assert settings.processor.min_score_alt == 85
-    assert settings.processor.min_score_improve == 85
     assert settings.processor.stop_words == 'эфир,запись,астролог,зодиак,таро,эзотери'
 
 
