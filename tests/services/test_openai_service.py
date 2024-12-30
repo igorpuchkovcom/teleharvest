@@ -48,8 +48,8 @@ async def test_make_request_success(openai_service: OpenAIService) -> None:
 @pytest.mark.asyncio
 async def test_make_request_failure(openai_service: OpenAIService) -> None:
     with patch.object(openai_service.client.chat.completions, 'create', side_effect=Exception("API Error")):
-        response = await openai_service.make_request("Test prompt")
-        assert response is None
+        with pytest.raises(Exception, match="API Error"):
+            await openai_service.make_request("Test prompt")
 
 
 @pytest.mark.asyncio

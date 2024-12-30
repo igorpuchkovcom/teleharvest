@@ -42,7 +42,7 @@ class OpenAIService(IOpenAIService):
             return response.choices[0].message.content.strip()
         except Exception as e:
             logger.error(f"Error occurred while making request to OpenAI: {e}")
-            return None
+            raise
 
     async def get_evaluation(self, text: str) -> Optional[float]:
         if not text:
