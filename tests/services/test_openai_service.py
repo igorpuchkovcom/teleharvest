@@ -1,6 +1,8 @@
 from unittest.mock import Mock, patch
 
+import httpx
 import pytest
+from openai import OpenAIError, RateLimitError
 from openai.types.chat import ChatCompletion, ChatCompletionMessage
 from openai.types.chat.chat_completion import Choice
 
@@ -83,3 +85,31 @@ async def test_get_alt_success(openai_service: OpenAIService) -> None:
 async def test_get_alt_empty_text(openai_service: OpenAIService) -> None:
     result = await openai_service.get_alt("")
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_check_credits_available_success(openai_service: OpenAIService) -> None:
+    with patch.object(openai_service, 'make_request', return_value="Test response"):
+        result = await openai_service.check_credits_available()
+        assert result is True
+
+
+@pytest.mark.asyncio
+async def test_check_credits_available_api_error(openai_service: OpenAIService) -> None:
+    with patch.object(openai_service, 'make_request', side_effect=OpenAIError("API error")):
+        result = await openai_service.check_credits_available()
+        assert result is False
+
+
+@pytest.mark.asyncio
+async def test_check_credits_available_rate_limit_error(openai_service: OpenAIService) -> None:
+    mock_response = Mock(spec=httpx.Response)
+    mock_response.status_code = 429
+    mock_response.headers = {}
+    with patch.object(
+            openai_service,
+            'make_request',
+            side_effect=RateLimitError("Rate limit exceeded", body=None, response=mock_response)
+    ):
+        result = await openai_service.check_credits_available()
+        assert result is False

@@ -43,6 +43,10 @@ class IOpenAIService(ABC):
     async def get_alt(self, text: str) -> Optional[str]:
         raise NotImplementedError
 
+    @abstractmethod
+    async def check_credits_available(self) -> bool:
+        raise NotImplementedError
+
 
 class IAsyncDatabase(ABC):
     engine: AsyncEngine

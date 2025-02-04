@@ -2,7 +2,7 @@ import logging
 from typing import Optional, Type
 
 import aiohttp
-from openai import OpenAI
+from openai import OpenAI, OpenAIError, RateLimitError
 
 from services.interfaces import IOpenAIService
 from settings import OpenAISettings
@@ -32,12 +32,12 @@ class OpenAIService(IOpenAIService):
     ) -> None:
         await self.session.close()
 
-    async def make_request(self, prompt: str) -> Optional[str]:
+    async def make_request(self, prompt: str, max_tokens: Optional[int] = None) -> Optional[str]:
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "system", "content": prompt}],
-                max_tokens=self.max_tokens
+                max_tokens=max_tokens if max_tokens is not None else self.max_tokens
             )
             return response.choices[0].message.content.strip()
         except Exception as e:
@@ -64,3 +64,14 @@ class OpenAIService(IOpenAIService):
 
         prompt: str = self.prompt_process.format(text=text)
         return await self.make_request(prompt)
+
+    async def check_credits_available(self) -> bool:
+        try:
+            await self.make_request("Test request", 1)
+            return True
+        except RateLimitError:
+            logger.warning("OpenAI API rate limit exceeded. Possibly out of credits.")
+            return False
+        except OpenAIError as e:
+            logger.error(f"OpenAI API error: {e}")
+            return False

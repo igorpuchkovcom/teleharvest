@@ -20,6 +20,7 @@ async def main() -> None:
             await client.start(phone=settings.telegram.phone)
 
             async with container.get_processor() as processor:
+                await processor.async_init()
                 logger.info("Fetching and processing messages")
                 await processor.fetch_and_process()
                 logger.info("Updating similarity score")

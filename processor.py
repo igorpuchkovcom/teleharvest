@@ -29,6 +29,10 @@ class Processor:
         self.embedding_service = embedding_service
         self.config = config
         self.published_messages = []
+        self.credits_available = False
+
+    async def async_init(self):
+        self.credits_available = await self.openai_service.check_credits_available()
 
     async def __aenter__(self) -> 'Processor':
         await asyncio.gather(
@@ -114,12 +118,16 @@ class Processor:
             logger.debug(f"Skipping message ID {message.id} with ER {er}")
             return False
 
+        if not self.credits_available:
+            return True
+
         message.score = await self.openai_service.get_evaluation(message.text)
         if message.score is None or message.score <= self.config.min_score:
             logger.debug(f"Skipping message ID {message.id} with score {message.score}")
             return False
 
-        logger.debug(f"Processing message ID {message.id}, channel: {message.channel}, text: {message.text[:50]}...")
+        logger.debug(
+            f"Processing message ID {message.id}, channel: {message.channel}, text: {message.text[:50]}...")
         message.alt = await self.openai_service.get_alt(message.text)
         message.score_alt = await self.openai_service.get_evaluation(message.alt)
         if message.score_alt is None or message.score_alt <= self.config.min_score_alt:

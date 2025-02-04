@@ -67,7 +67,7 @@ def message() -> Message:
 @pytest.fixture
 def embedding_service() -> AsyncMock:
     service = AsyncMock()
-    service.generate_embedding.return_value = "embedding"
+    service.generate_embedding.return_value = json.dumps([0.1, 0.2, 0.3])
     service.calculate_max_similarity.return_value = 0.5
     return service
 
@@ -117,10 +117,9 @@ async def test_process_message_valid(
     processor: Processor, openai_service: AsyncMock, embedding_service: AsyncMock, message: Message
 ) -> None:
     processor.published_messages = [message]
+    processor.credits_available = True
 
     openai_service.get_evaluation.side_effect = [86, 96, 96]
-    embedding_service.generate_embedding.return_value = json.dumps([0.1, 0.2, 0.3])
-    embedding_service.calculate_max_similarity.return_value = 0.8
 
     result = await processor._process_message(message)
 
@@ -129,7 +128,7 @@ async def test_process_message_valid(
     assert message.alt == "Alternative text"
     assert message.score_alt == 96
     assert message.embedding == json.dumps([0.1, 0.2, 0.3])
-    assert message.similarity_score == 0.8
+    assert message.similarity_score == 0.5
 
 
 async def edge_cases(
@@ -156,8 +155,8 @@ async def test_process_message_no_text(
 async def test_process_message_low_score(
     processor: Processor, openai_service: AsyncMock, embedding_service: AsyncMock, message: Message
 ) -> None:
+    processor.credits_available = True
     openai_service.get_evaluation.side_effect = [50, 96]
-    embedding_service.generate_embedding.return_value = "embedding"
 
     result = await processor._process_message(message)
 
@@ -173,8 +172,8 @@ async def test_process_message_low_score(
 async def test_process_message_low_alt_score(
     processor: Processor, openai_service: AsyncMock, embedding_service: AsyncMock, message: Message
 ) -> None:
+    processor.credits_available = True
     openai_service.get_evaluation.side_effect = [86, 50]
-    embedding_service.generate_embedding.return_value = "embedding"
 
     result = await processor._process_message(message)
 
@@ -234,16 +233,14 @@ async def test_update_similarity(processor: Processor, embedding_service: AsyncM
 async def test_process_message_similarity_score(
     processor: Processor, openai_service: AsyncMock, embedding_service: AsyncMock, message: Message
 ) -> None:
+    processor.credits_available = True
     openai_service.get_evaluation.side_effect = [86, 96, 96]
 
     processor.published_messages = [message]
 
-    embedding_service.generate_embedding.return_value = json.dumps({"vector": [0.4, 0.5, 0.6]})
-    embedding_service.calculate_max_similarity.return_value = 0.8
-
     await processor._process_message(message)
 
-    assert message.similarity_score == 0.8
+    assert message.similarity_score == 0.5
     embedding_service.calculate_max_similarity.assert_called_once_with(
         json.loads(message.embedding), processor.published_messages
     )
@@ -408,3 +405,81 @@ async def test_update_metrics_no_valid_data(processor: Processor, message: Messa
     # Assert
     processor._update_metrics.assert_called_once_with(message)
     message.update.assert_not_called()  # Update should not be called due to invalid data
+
+
+@pytest.mark.asyncio
+async def test_process_message_valid_no_credits(
+    processor: Processor, openai_service: AsyncMock, embedding_service: AsyncMock, message: Message
+) -> None:
+    processor.published_messages = [message]
+    processor.credits_available = False
+
+    openai_service.get_evaluation.side_effect = [86, 96, 96]
+
+    result = await processor._process_message(message)
+
+    assert result
+    assert message.score is None
+    assert message.alt is None
+    assert message.score_alt is None
+    assert message.embedding is None
+    assert message.similarity_score is None
+
+    openai_service.get_evaluation.assert_not_called()
+    openai_service.get_alt.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_process_message_low_score_no_credits(
+    processor: Processor, openai_service: AsyncMock, embedding_service: AsyncMock, message: Message
+) -> None:
+    processor.credits_available = False
+    openai_service.get_evaluation.side_effect = [50, 96]
+
+    result = await processor._process_message(message)
+
+    assert result
+    assert message.score is None
+    assert message.score_alt is None
+    assert message.embedding is None
+    openai_service.get_alt.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_process_message_low_alt_score_no_credits(
+    processor: Processor, openai_service: AsyncMock, embedding_service: AsyncMock, message: Message
+) -> None:
+    processor.credits_available = False
+
+    openai_service.get_evaluation.side_effect = [86, 50]
+
+    result = await processor._process_message(message)
+
+    assert result
+    assert message.score is None
+    assert message.score_alt is None
+    assert message.embedding is None
+    openai_service.get_alt.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_process_message_similarity_score_no_credits(
+    processor: Processor, openai_service: AsyncMock, embedding_service: AsyncMock, message: Message
+) -> None:
+    processor.credits_available = False
+    openai_service.get_evaluation.side_effect = [86, 96, 96]
+    processor.published_messages = [message]
+
+    await processor._process_message(message)
+
+    assert message.similarity_score is None
+
+
+@pytest.mark.asyncio
+async def test_async_init(processor: Processor, openai_service: AsyncMock) -> None:
+    openai_service.check_credits_available.return_value = True
+
+    await processor.async_init()
+
+    openai_service.check_credits_available.assert_called_once()
+    assert processor.credits_available is True
